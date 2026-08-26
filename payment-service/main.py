@@ -8,7 +8,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
-
+from fastapi import FastAPI, HTTPException
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 
@@ -73,7 +73,20 @@ def health():
 
 @app.post("/payment")
 def process_payment(order_id: int, amount: float):
+    if order_id == 9999:
+        logger.error(
+        "payment_service_test_failure",
+        extra={
+            "order_id": order_id,
+            "amount": amount,
+            "reason": "Intentional payment failure for SysSleuth testing"
+        }
+    )
 
+    raise HTTPException(
+        status_code=500,
+        detail="Intentional payment service failure"
+    )
     logger.info(
         "payment_requested",
         extra={

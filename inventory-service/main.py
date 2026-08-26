@@ -1,8 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import psycopg2
 from prometheus_fastapi_instrumentator import Instrumentator
 from logging_config import setup_logging
-
+import time
 # OpenTelemetry
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
@@ -85,7 +85,33 @@ def get_db_connection():
 
 @app.get("/inventory/{product_id}")
 def get_inventory(product_id: int):
+    # INTENTIONAL FAILURE FOR OBSERVABILITY TESTING
+    if product_id == 9999:
+        logger.error(
+            "inventory_service_test_failure",
+            extra={
+                "product_id": product_id,
+                "reason": "Intentional failure for SysSleuth testing"
+            }
+        )
 
+        raise HTTPException(
+            status_code=500,
+            detail="Intentional inventory service failure"
+        )
+    # INTENTIONAL LATENCY FOR OBSERVABILITY TESTING
+    if product_id == 8888:
+        logger.warning(
+        "inventory_service_test_latency",
+        extra={
+            "product_id": product_id,
+            "delay_seconds": 5,
+            "reason": "Intentional latency for SysSleuth testing"
+        }
+    )
+
+    time.sleep(5)
+        
     logger.info(
         "inventory_check_requested",
         extra={
