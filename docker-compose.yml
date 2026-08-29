@@ -33,6 +33,7 @@ services:
     build: ./inventory-service
     container_name: inventory-service
     restart: unless-stopped
+    
 
     ports:
       - "8002:8002"

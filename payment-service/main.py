@@ -1,34 +1,30 @@
-from fastapi import FastAPI
-from prometheus_fastapi_instrumentator import Instrumentator
-from logging_config import setup_logging
+from fastapi import FastAPI, HTTPException
 
-# OpenTelemetry
+from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Counter
+
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import Resource
-from fastapi import FastAPI, HTTPException
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.resources import Resource
+
+from logging_config import setup_logging
 
 
-# --------------------------------------------------
-# Logging
-# --------------------------------------------------
-
-logger = setup_logging("payment-service")
-
-
-# --------------------------------------------------
-# OpenTelemetry
-# --------------------------------------------------
+# -----------------------------------
+# OPENTELEMETRY
+# -----------------------------------
 
 resource = Resource.create({
     "service.name": "payment-service"
 })
 
 trace.set_tracer_provider(
-    TracerProvider(resource=resource)
+    TracerProvider(
+        resource=resource
+    )
 )
 
 otlp_exporter = OTLPSpanExporter(
@@ -36,30 +32,59 @@ otlp_exporter = OTLPSpanExporter(
     insecure=True
 )
 
-span_processor = BatchSpanProcessor(otlp_exporter)
+span_processor = BatchSpanProcessor(
+    otlp_exporter
+)
 
 trace.get_tracer_provider().add_span_processor(
     span_processor
 )
 
 
-# --------------------------------------------------
-# FastAPI
-# --------------------------------------------------
+# -----------------------------------
+# FASTAPI
+# -----------------------------------
 
-app = FastAPI(title="Payment Service")
+app = FastAPI(
+    title="Payment Service"
+)
+
+
+# -----------------------------------
+# PROMETHEUS
+# -----------------------------------
+
 Instrumentator().instrument(app).expose(app)
+
+payment_failures_total = Counter(
+    "payment_failures_total",
+    "Total number of payment failures",
+    ["failure_type"]
+)
+
+
+# -----------------------------------
+# LOGGING
+# -----------------------------------
+
+logger = setup_logging(
+    "payment-service"
+)
+
+
+# -----------------------------------
+# OPENTELEMETRY INSTRUMENTATION
+# -----------------------------------
+
 FastAPIInstrumentor.instrument_app(app)
 
 
-# --------------------------------------------------
-# Health
-# --------------------------------------------------
+# -----------------------------------
+# HEALTH CHECK
+# -----------------------------------
 
 @app.get("/health")
 def health():
-
-    logger.info("payment_health_check")
 
     return {
         "service": "payment",
@@ -67,33 +92,51 @@ def health():
     }
 
 
-# --------------------------------------------------
-# Payment
-# --------------------------------------------------
+# -----------------------------------
+# PROCESS PAYMENT
+# -----------------------------------
 
 @app.post("/payment")
-def process_payment(order_id: int, amount: float):
-    if order_id == 9999:
-        logger.error(
-        "payment_service_test_failure",
-        extra={
-            "order_id": order_id,
-            "amount": amount,
-            "reason": "Intentional payment failure for SysSleuth testing"
-        }
-    )
+def process_payment(
+    order_id: int,
+    amount: float
+):
 
-    raise HTTPException(
-        status_code=500,
-        detail="Intentional payment service failure"
-    )
     logger.info(
-        "payment_requested",
+        "payment_started",
         extra={
             "order_id": order_id,
             "amount": amount
         }
     )
+
+    # -----------------------------------
+    # PAYMENT DECLINED
+    # -----------------------------------
+
+    if order_id == 8:
+
+        payment_failures_total.labels(
+            failure_type="payment_declined"
+        ).inc()
+
+        logger.error(
+            "payment_declined",
+            extra={
+                "order_id": order_id,
+                "amount": amount,
+                "reason": "Payment was declined by payment provider"
+            }
+        )
+
+        raise HTTPException(
+            status_code=402,
+            detail="Payment declined"
+        )
+
+    # -----------------------------------
+    # NORMAL PAYMENT
+    # -----------------------------------
 
     logger.info(
         "payment_success",
@@ -104,8 +147,7 @@ def process_payment(order_id: int, amount: float):
     )
 
     return {
-        "success": True,
+        "status": "payment successful",
         "order_id": order_id,
-        "amount": amount,
-        "message": "Payment successful"
+        "amount": amount
     }

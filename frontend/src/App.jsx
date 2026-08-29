@@ -4,10 +4,11 @@ import "./App.css";
 
 function App() {
   const [products, setProducts] = useState([]);
-  const [error, setError] = useState("");
   const [category, setCategory] = useState("All");
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutError, setCheckoutError] = useState(null);
+  const [error, setError] = useState(null);
 
   // -----------------------------
   // Load products
@@ -76,6 +77,58 @@ function App() {
   };
 
   // -----------------------------
+  // Checkout
+  // -----------------------------
+  const checkout = async () => {
+    if (cart.length === 0) {
+      return;
+    }
+
+    // Clear previous checkout error
+    setCheckoutError(null);
+
+    try {
+      for (const item of cart) {
+        const amount = Number(item.price_inr) * item.quantity;
+
+        console.log("Sending order:", {
+          item_id: item.product_id,
+          amount: amount,
+        });
+
+        const response = await axios.post(
+          "http://localhost:8001/orders",
+          null,
+          {
+            params: {
+              item_id: String(item.product_id),
+              quantity: item.quantity,
+              amount: amount,
+            },
+          }
+        );
+
+        console.log("Order successful:", response.data);
+      }
+
+      alert("Order placed successfully!");
+
+      setCart([]);
+      setCartOpen(false);
+    } catch (err) {
+      console.error("Checkout failed:", err);
+
+      if (err.response) {
+        setCheckoutError(
+          err.response.data.detail || "Something went wrong during checkout."
+        );
+      } else {
+        setCheckoutError("We couldn't connect to the order service.");
+      }
+    }
+  };
+
+  // -----------------------------
   // Cart calculations
   // -----------------------------
   const cartCount = cart.reduce(
@@ -108,13 +161,12 @@ function App() {
       <nav className="navbar">
 
         <div className="logo">
-          
           DIGIBUY
-          
           <small>STORE</small>
         </div>
 
         <div className="nav-links">
+
           <a href="#home">HOME</a>
 
           {/* Category Dropdown */}
@@ -131,7 +183,7 @@ function App() {
           </select>
 
           <a href="#products">PRODUCTS</a>
-          
+
         </div>
 
         {/* Cart */}
@@ -142,21 +194,20 @@ function App() {
           🛒 CART
           <span className="cart-count">{cartCount}</span>
         </button>
+
       </nav>
+
 
       {/* ================= HERO ================= */}
       <section className="hero" id="home">
 
         <div className="hero-glow"></div>
 
-
         <h1>
           TECHNOLOGY
           <br />
           <span>REDEFINED.</span>
         </h1>
-
-        
 
         <button
           className="hero-button"
@@ -171,10 +222,12 @@ function App() {
 
       </section>
 
+
       {/* ================= PRODUCTS ================= */}
       <main id="products" className="products-section">
 
         <div className="section-header">
+
           <div>
             <p className="section-code">&lt; PRODUCT_DATABASE /&gt;</p>
             <h2></h2>
@@ -183,7 +236,9 @@ function App() {
           <div className="product-count">
             {filteredProducts.length} ITEMS FOUND
           </div>
+
         </div>
+
 
         {error && (
           <p className="error">
@@ -191,11 +246,15 @@ function App() {
           </p>
         )}
 
+
         <div className="products-grid">
 
           {filteredProducts.map((product) => (
 
-            <div className="product-card" key={product.product_id}>
+            <div
+              className="product-card"
+              key={product.product_id}
+            >
 
               {/* Discount */}
               {product.discount && (
@@ -204,14 +263,18 @@ function App() {
                 </div>
               )}
 
+
               {/* Product image */}
               <div className="product-image-container">
+
                 <img
                   src={product.image_url}
                   alt={product.product_name}
                   className="product-image"
                 />
+
               </div>
+
 
               {/* Product information */}
               <div className="product-info">
@@ -224,12 +287,15 @@ function App() {
                   {product.product_name}
                 </h3>
 
+
                 <div className="rating">
                   ★ {product.rating || "N/A"}
+
                   <span>
                     ({product.rating_count || "0"})
                   </span>
                 </div>
+
 
                 <div className="price-row">
 
@@ -248,6 +314,7 @@ function App() {
 
                 </div>
 
+
                 <button
                   className="add-cart"
                   onClick={() => addToCart(product)}
@@ -256,15 +323,19 @@ function App() {
                 </button>
 
               </div>
+
             </div>
 
           ))}
 
         </div>
+
       </main>
+
 
       {/* ================= CART SIDEBAR ================= */}
       {cartOpen && (
+
         <div
           className="cart-overlay"
           onClick={() => setCartOpen(false)}
@@ -276,6 +347,7 @@ function App() {
           >
 
             <div className="cart-header">
+
               <div>
                 <p>&lt; CART /&gt;</p>
                 <h2>YOUR CART</h2>
@@ -287,21 +359,30 @@ function App() {
               >
                 ×
               </button>
+
             </div>
+
 
             {cart.length === 0 ? (
 
               <div className="empty-cart">
-                <div className="empty-icon">🛒</div>
+
+                <div className="empty-icon">
+                  🛒
+                </div>
+
                 <h3>CART EMPTY</h3>
+
                 <p>
                   No products have been selected.
                 </p>
+
               </div>
 
             ) : (
 
               <>
+
                 <div className="cart-items">
 
                   {cart.map((item) => (
@@ -316,11 +397,13 @@ function App() {
                         alt={item.product_name}
                       />
 
+
                       <div className="cart-item-info">
 
                         <h4>
                           {item.product_name}
                         </h4>
+
 
                         <p className="cart-item-price">
                           ₹
@@ -328,6 +411,7 @@ function App() {
                             item.price_inr
                           ).toLocaleString("en-IN")}
                         </p>
+
 
                         <div className="quantity-controls">
 
@@ -355,6 +439,7 @@ function App() {
 
                         </div>
 
+
                         <button
                           className="remove-item"
                           onClick={() =>
@@ -367,16 +452,21 @@ function App() {
                         </button>
 
                       </div>
+
                     </div>
 
                   ))}
 
                 </div>
 
+
                 <div className="cart-footer">
 
                   <div className="cart-total">
-                    <span>TOTAL</span>
+
+                    <span>
+                      TOTAL
+                    </span>
 
                     <strong>
                       ₹
@@ -384,19 +474,82 @@ function App() {
                         "en-IN"
                       )}
                     </strong>
+
                   </div>
 
-                  <button className="checkout-button">
+
+                  <button
+                    className="checkout-button"
+                    onClick={checkout}
+                  >
                     PROCEED TO CHECKOUT →
                   </button>
 
                 </div>
 
               </>
+
             )}
 
           </div>
+
         </div>
+
+      )}
+
+
+      {/* ================= CHECKOUT ERROR ================= */}
+      {checkoutError && (
+
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
+
+          <div className="relative w-full max-w-[430px] rounded-2xl border border-white/10 bg-[#0b0f0c] p-10 text-center shadow-[0_25px_80px_rgba(0,0,0,0.7)]">
+
+            {/* Close button */}
+            <button
+              className="absolute right-5 top-4 text-2xl font-light text-gray-500 transition-colors hover:text-white"
+              onClick={() => setCheckoutError(null)}
+              aria-label="Close error"
+            >
+              ×
+            </button>
+
+
+            {/* Error icon */}
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-green-400/40 bg-green-400/5 text-3xl font-semibold text-green-400">
+              !
+            </div>
+
+
+            {/* Heading */}
+            <h2 className="mb-3 text-3xl font-semibold tracking-tight text-white">
+              UH-OH!
+            </h2>
+
+
+            <p className="mb-4 text-lg text-gray-300">
+              Something went wrong.
+            </p>
+
+
+            {/* Actual backend error */}
+            <p className="mb-8 text-sm leading-6 text-gray-500">
+              {checkoutError}
+            </p>
+
+
+            {/* Try again */}
+            <button
+              className="w-full rounded-xl bg-green-400 px-6 py-3.5 font-semibold tracking-wide text-black transition-all duration-200 hover:bg-green-300 hover:shadow-[0_0_25px_rgba(74,222,128,0.25)] active:scale-[0.98]"
+              onClick={() => setCheckoutError(null)}
+            >
+              TRY AGAIN
+            </button>
+
+          </div>
+
+        </div>
+
       )}
 
     </div>

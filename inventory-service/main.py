@@ -9,7 +9,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
-
+import os
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 
@@ -78,6 +78,13 @@ def get_db_connection():
         password="password123"
     )
 
+# --------------------------------------------------
+# Failure Injection Controls
+# --------------------------------------------------
+
+INVENTORY_FAILURE_ENABLED = False
+INVENTORY_LATENCY_ENABLED = False
+
 
 # --------------------------------------------------
 # Get inventory
@@ -85,8 +92,9 @@ def get_db_connection():
 
 @app.get("/inventory/{product_id}")
 def get_inventory(product_id: int):
-    # INTENTIONAL FAILURE FOR OBSERVABILITY TESTING
-    if product_id == 9999:
+
+    # INTENTIONAL INVENTORY FAILURE
+    if INVENTORY_FAILURE_ENABLED and product_id == 9999:
         logger.error(
             "inventory_service_test_failure",
             extra={
@@ -99,25 +107,40 @@ def get_inventory(product_id: int):
             status_code=500,
             detail="Intentional inventory service failure"
         )
-    # INTENTIONAL LATENCY FOR OBSERVABILITY TESTING
-    if product_id == 8888:
-        logger.warning(
-        "inventory_service_test_latency",
-        extra={
-            "product_id": product_id,
-            "delay_seconds": 5,
-            "reason": "Intentional latency for SysSleuth testing"
-        }
-    )
 
-    time.sleep(5)
-        
+    # INTENTIONAL LATENCY
+    if INVENTORY_LATENCY_ENABLED and product_id == 8888:
+        logger.warning(
+            "inventory_service_test_latency",
+            extra={
+                "product_id": product_id,
+                "delay_seconds": 5,
+                "reason": "Intentional latency for SysSleuth testing"
+            }
+        )
+
+        time.sleep(5)
+
     logger.info(
         "inventory_check_requested",
         extra={
             "product_id": product_id
         }
     )
+    # -----------------------------------
+    # INTENTIONAL SERVICE CRASH
+    # -----------------------------------
+
+    if product_id == 5:
+        logger.critical(
+            "inventory_service_crash_test",
+            extra={
+                "product_id": product_id,
+                "reason": "Intentional service crash for SysSleuth testing"
+            }
+        )
+
+        os._exit(1)
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -137,7 +160,6 @@ def get_inventory(product_id: int):
     conn.close()
 
     if product is None:
-
         logger.warning(
             "product_not_found",
             extra={
@@ -152,7 +174,7 @@ def get_inventory(product_id: int):
     logger.info(
         "inventory_check_success",
         extra={
-            "product_id": product_id,
+            "product_id": product[0],
             "stock": product[2]
         }
     )

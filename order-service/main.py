@@ -3,14 +3,15 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException
+
 import httpx
 
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 
 from logging_config import setup_logging
-
 from opentelemetry.sdk.resources import Resource
 
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -47,6 +48,14 @@ trace.get_tracer_provider().add_span_processor(
 
 app = FastAPI(title="Order Service")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # -----------------------------------
 # PROMETHEUS CUSTOM ERROR METRIC
@@ -78,7 +87,6 @@ logger = setup_logging("order-service")
 # -----------------------------------
 
 FastAPIInstrumentor.instrument_app(app)
-
 HTTPXClientInstrumentor().instrument()
 
 
@@ -87,7 +95,6 @@ HTTPXClientInstrumentor().instrument()
 # -----------------------------------
 
 INVENTORY_URL = "http://inventory-service:8002"
-
 PAYMENT_URL = "http://payment-service:8003"
 
 
@@ -97,7 +104,6 @@ PAYMENT_URL = "http://payment-service:8003"
 
 @app.get("/health")
 def health():
-
     return {
         "service": "order",
         "status": "healthy"
@@ -109,12 +115,17 @@ def health():
 # -----------------------------------
 
 @app.post("/orders")
-def create_order(item_id: str, amount: float):
+def create_order(
+    item_id: str,
+    quantity: int,
+    amount: float
+):
 
     logger.info(
         "order_started",
         extra={
             "item_id": item_id,
+            "quantity": quantity,
             "amount": amount
         }
     )
@@ -122,33 +133,71 @@ def create_order(item_id: str, amount: float):
     with httpx.Client(timeout=3.0) as client:
 
         # -----------------------------------
-        # 1. CHECK INVENTORY
+        # 1. CHECK / RESERVE INVENTORY
         # -----------------------------------
 
         try:
 
             logger.info(
-                "inventory_check_started",
+                "inventory_reservation_started",
                 extra={
-                    "item_id": item_id
+                    "item_id": item_id,
+                    "quantity": quantity
                 }
             )
 
-            inv_resp = client.get(
-                f"{INVENTORY_URL}/inventory/{item_id}"
+            inv_resp = client.post(
+                f"{INVENTORY_URL}/inventory/{item_id}/reserve",
+                params={
+                    "quantity": quantity
+                }
             )
 
             inv_resp.raise_for_status()
 
             inventory_data = inv_resp.json()
 
+            # Inventory service may return success=False
+            if not inventory_data.get("success", False):
+
+                errors_total.labels(
+                    service="order-service",
+                    error_type="inventory_failure"
+                ).inc()
+
+                logger.error(
+                    "inventory_reservation_failed",
+                    extra={
+                        "item_id": item_id,
+                        "quantity": quantity,
+                        "reason": inventory_data.get(
+                            "error",
+                            "Inventory reservation failed"
+                        )
+                    }
+                )
+
+                raise HTTPException(
+                    status_code=409,
+                    detail=inventory_data.get(
+                        "error",
+                        "Insufficient stock"
+                    )
+                )
+
             logger.info(
-                "inventory_check_success",
+                "inventory_reservation_success",
                 extra={
                     "item_id": item_id,
-                    "stock": inventory_data["stock"]
+                    "quantity": quantity,
+                    "remaining_stock": inventory_data.get(
+                        "remaining_stock"
+                    )
                 }
             )
+
+        except HTTPException:
+            raise
 
         except httpx.HTTPStatusError as e:
 
@@ -161,6 +210,7 @@ def create_order(item_id: str, amount: float):
                 "inventory_check_failed",
                 extra={
                     "item_id": item_id,
+                    "quantity": quantity,
                     "reason": str(e)
                 }
             )
@@ -181,6 +231,7 @@ def create_order(item_id: str, amount: float):
                 "inventory_service_unreachable",
                 extra={
                     "item_id": item_id,
+                    "quantity": quantity,
                     "reason": str(e)
                 }
             )
@@ -201,6 +252,7 @@ def create_order(item_id: str, amount: float):
                 "payment_started",
                 extra={
                     "item_id": item_id,
+                    "quantity": quantity,
                     "amount": amount
                 }
             )
@@ -274,6 +326,7 @@ def create_order(item_id: str, amount: float):
         "order_completed",
         extra={
             "item_id": item_id,
+            "quantity": quantity,
             "amount": amount
         }
     )
@@ -281,6 +334,7 @@ def create_order(item_id: str, amount: float):
     return {
         "status": "order placed",
         "item_id": item_id,
+        "quantity": quantity,
         "amount": amount,
         "payment": payment_data
     }
