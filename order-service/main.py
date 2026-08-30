@@ -1,20 +1,27 @@
 from opentelemetry import trace
+
 from opentelemetry.sdk.trace import TracerProvider
+
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 
 from fastapi.middleware.cors import CORSMiddleware
+
 from fastapi import FastAPI, HTTPException
 
 import httpx
 
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 
 from logging_config import setup_logging
+
 from opentelemetry.sdk.resources import Resource
 
 from prometheus_fastapi_instrumentator import Instrumentator
+
 from prometheus_client import Counter
 
 
@@ -87,6 +94,7 @@ logger = setup_logging("order-service")
 # -----------------------------------
 
 FastAPIInstrumentor.instrument_app(app)
+
 HTTPXClientInstrumentor().instrument()
 
 
@@ -95,6 +103,7 @@ HTTPXClientInstrumentor().instrument()
 # -----------------------------------
 
 INVENTORY_URL = "http://inventory-service:8002"
+
 PAYMENT_URL = "http://payment-service:8003"
 
 
@@ -130,7 +139,7 @@ def create_order(
         }
     )
 
-    with httpx.Client(timeout=3.0) as client:
+    with httpx.Client(timeout=10.0) as client:
 
         # -----------------------------------
         # 1. CHECK / RESERVE INVENTORY
@@ -157,7 +166,10 @@ def create_order(
 
             inventory_data = inv_resp.json()
 
-            # Inventory service may return success=False
+            # -----------------------------------
+            # INVENTORY RETURNED success=False
+            # -----------------------------------
+
             if not inventory_data.get("success", False):
 
                 errors_total.labels(
@@ -181,7 +193,7 @@ def create_order(
                     status_code=409,
                     detail=inventory_data.get(
                         "error",
-                        "Insufficient stock"
+                        "Inventory reservation failed"
                     )
                 )
 
@@ -200,6 +212,39 @@ def create_order(
             raise
 
         except httpx.HTTPStatusError as e:
+
+            # -----------------------------------
+            # PRODUCT 7 → CASCADING FAILURE
+            # -----------------------------------
+
+            if item_id == "7":
+
+                errors_total.labels(
+                    service="order-service",
+                    error_type="cascading_inventory_failure"
+                ).inc()
+
+                logger.error(
+                    "cascading_failure_inventory",
+                    extra={
+                        "item_id": item_id,
+                        "quantity": quantity,
+                        "reason": "Inventory service failure propagated to order service",
+                        "upstream_status": e.response.status_code
+                    }
+                )
+
+                # Payment is intentionally NOT called because
+                # inventory was never successfully reserved.
+
+                raise HTTPException(
+                    status_code=502,
+                    detail="Order failed because inventory service failed"
+                )
+
+            # -----------------------------------
+            # OTHER INVENTORY HTTP ERRORS
+            # -----------------------------------
 
             errors_total.labels(
                 service="order-service",
