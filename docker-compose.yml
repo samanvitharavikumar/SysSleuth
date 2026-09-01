@@ -10,12 +10,22 @@ services:
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: syssleuth_inventory
 
-    ports:
-      - "5433:5432"
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: syssleuth-otel-collector
+    restart: unless-stopped
+
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
 
     volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
       - postgres_data:/var/lib/postgresql/data
 
+
+    ports:
+         - "14317:4317"
+         - "4318:4318"
+         - "8888:8888"
 
   order-service:
     build: ./order-service

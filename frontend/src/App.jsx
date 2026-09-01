@@ -274,16 +274,7 @@ function App() {
   // Diagnostics
   // -----------------------------
   const findOutWhatHappened = () => {
-    if (!failureInfo) return;
-
-    const params = new URLSearchParams({
-      type: failureInfo.type || "unknown",
-      productId: String(failureInfo.productId || ""),
-      title: failureInfo.title || "Service Error",
-      message: failureInfo.message || "",
-    });
-
-    window.location.href = `/diagnostics?${params.toString()}`;
+      window.location.href = "/rca";
   };
 
   return (
