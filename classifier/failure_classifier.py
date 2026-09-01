@@ -5,7 +5,7 @@ def classify_failure(logs):
     Classify a failure based on log messages.
     """
 
-    for log in logs:
+    for log in reversed(logs):
 
         # Service crash
         if "inventory_service_crash_test" in log:
@@ -24,7 +24,7 @@ def classify_failure(logs):
             }
 
         # Payment failure
-        if "payment_failed" in log:
+        if "payment_declined" in log:
             return {
                 "failure_type": "PAYMENT_FAILURE",
                 "service": "payment-service",
@@ -32,7 +32,7 @@ def classify_failure(logs):
             }
 
         # Cascading failure
-        if "inventory_service_unreachable" in log:
+        if "inventory_cascade_failure" in log:
             return {
                 "failure_type": "CASCADING_FAILURE",
                 "service": "order-service",
@@ -40,13 +40,13 @@ def classify_failure(logs):
             }
 
 
-        # Insufficient stock
-        if "insufficient_stock" in log:
-            return {
-                "failure_type": "INSUFFICIENT_STOCK",
-                "service": "inventory-service",
-                "reason": "Requested quantity exceeds available stock"
-            }
+         # Insufficient stock
+        if "insufficient_stock" in log.lower():
+             return {
+            "failure_type": "INSUFFICIENT_STOCK",
+            "service": "inventory-service",
+            "reason": "Requested quantity exceeds available stock"
+        }
 
     return {
         "failure_type": "UNKNOWN",

@@ -1,7 +1,7 @@
 import subprocess
 
 
-def get_recent_logs(service_name, lines=50):
+def get_recent_logs(service_name, lines=500):
     """
     Get recent Docker logs for a service.
     """
@@ -22,4 +22,11 @@ def get_recent_logs(service_name, lines=50):
     if result.returncode != 0:
         return []
 
-    return result.stdout.splitlines()
+    # Remove noisy Prometheus /metrics logs
+    logs = [
+        line
+        for line in result.stdout.splitlines()
+        if "GET /metrics" not in line
+    ]
+
+    return logs

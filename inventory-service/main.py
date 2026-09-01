@@ -187,9 +187,6 @@ def get_inventory(product_id: int):
     }
 
 
-## --------------------------------------------------
-# Reserve inventory
-# --------------------------------------------------
 @app.post("/inventory/{product_id}/reserve")
 def reserve_inventory(product_id: int, quantity: int):
 
@@ -213,9 +210,11 @@ def reserve_inventory(product_id: int, quantity: int):
                 "reason": "Intentional service crash for SysSleuth testing"
             }
         )
+
         os._exit(1)
-        # -----------------------------------
-    # INTENTIONAL LATENCY - PRODUCT 6
+
+    # -----------------------------------
+    # INTENTIONAL LATENCY / TIMEOUT - PRODUCT 6
     # -----------------------------------
     if product_id == 6:
         logger.warning(
@@ -226,36 +225,40 @@ def reserve_inventory(product_id: int, quantity: int):
                 "reason": "Intentional latency for SysSleuth testing"
             }
         )
+
         time.sleep(7)
+
         logger.error(
-        "inventory_service_timeout",
-        extra={
-            "product_id": product_id,
-            "reason": "Intentional timeout for SysSleuth testing"
-        }
-    )
+            "inventory_service_timeout",
+            extra={
+                "product_id": product_id,
+                "reason": "Intentional timeout for SysSleuth testing"
+            }
+        )
 
-    raise HTTPException(
-        status_code=504,
-        detail="Timed out"
-    )
+        raise HTTPException(
+            status_code=504,
+            detail="Timed out"
+        )
+
     # -----------------------------------
-# INTENTIONAL CASCADING FAILURE - PRODUCT 7
-# -----------------------------------
+    # INTENTIONAL CASCADING FAILURE - PRODUCT 7
+    # -----------------------------------
     if product_id == 7:
-     logger.error(
-        "inventory_cascade_failure",
-        extra={
-            "product_id": product_id,
-            "quantity": quantity,
-            "reason": "Intentional inventory failure to trigger cascading failure"
-        }
-    )
+        logger.error(
+            "inventory_cascade_failure",
+            extra={
+                "product_id": product_id,
+                "quantity": quantity,
+                "reason": "Intentional inventory failure to trigger cascading failure"
+            }
+        )
 
-    raise HTTPException(
-        status_code=500,
-        detail="Inventory service failed"
-    )
+        raise HTTPException(
+            status_code=500,
+            detail="Inventory service failed"
+        )
+
     # -----------------------------------
     # DATABASE
     # -----------------------------------
@@ -287,6 +290,9 @@ def reserve_inventory(product_id: int, quantity: int):
 
     current_stock = product[0]
 
+    # -----------------------------------
+    # INSUFFICIENT STOCK
+    # -----------------------------------
     if current_stock < quantity:
         logger.warning(
             "insufficient_stock",
@@ -305,6 +311,9 @@ def reserve_inventory(product_id: int, quantity: int):
             "error": "Insufficient stock"
         }
 
+    # -----------------------------------
+    # RESERVE STOCK
+    # -----------------------------------
     new_stock = current_stock - quantity
 
     cursor.execute(
