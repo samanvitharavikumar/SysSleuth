@@ -4,6 +4,10 @@ import requests
 JAEGER_URL = "http://localhost:16686"
 
 
+# ============================================================
+# JAEGER
+# ============================================================
+
 def get_recent_traces(service_name, limit=100):
     """
     Fetch recent traces for a service from Jaeger.
@@ -29,6 +33,10 @@ def get_recent_traces(service_name, limit=100):
         print("Jaeger error:", e)
         return []
 
+
+# ============================================================
+# TAG HELPERS
+# ============================================================
 
 def get_tag(span, key):
     """
@@ -58,7 +66,8 @@ def get_first_tag(span, keys):
 
 def get_process_service(trace, span):
     """
-    Determine the service name for a span using Jaeger's process map.
+    Determine the service name for a span using Jaeger's
+    process map.
     """
 
     process_id = span.get("processID")
@@ -75,9 +84,13 @@ def get_process_service(trace, span):
     return None
 
 
+# ============================================================
+# FAILURE TYPE NORMALIZATION
+# ============================================================
+
 def normalize_failure_type(value):
     """
-    Convert failure type values into the names used by SysSleuth.
+    Normalize explicit failure.type values.
     """
 
     if value is None:
@@ -114,8 +127,12 @@ def normalize_failure_type(value):
         "service failure": "service_failure",
     }
 
-    return mapping.get(value)
+    return mapping.get(value, value)
 
+
+# ============================================================
+# FAILURE TEXT
+# ============================================================
 
 def span_contains_failure_text(span):
     """
@@ -138,7 +155,6 @@ def span_contains_failure_text(span):
     for tag in span.get("tags", []):
 
         key = str(tag.get("key", "")).lower()
-
         value = str(tag.get("value", "")).lower()
 
         combined = f"{key} {value}"
@@ -152,7 +168,6 @@ def span_contains_failure_text(span):
         for field in log.get("fields", []):
 
             key = str(field.get("key", "")).lower()
-
             value = str(field.get("value", "")).lower()
 
             combined = f"{key} {value}"
@@ -163,12 +178,17 @@ def span_contains_failure_text(span):
     return False
 
 
+# ============================================================
+# TRACE EXTRACTION
+# ============================================================
+
 def extract_failure_traces(service_name, limit=100):
     """
     Extract failure-related spans from Jaeger.
 
-    Explicit failure.type tags always take priority over
-    generic timeout/status heuristics.
+    Explicit failure.type is the strongest signal.
+
+    Generic latency alone is NOT enough to declare a timeout.
     """
 
     traces = get_recent_traces(service_name, limit)
@@ -187,17 +207,20 @@ def extract_failure_traces(service_name, limit=100):
 
             operation = span.get(
                 "operationName",
-                ""
+                "",
             )
 
             service = get_process_service(
                 trace,
-                span
+                span,
             )
 
-            # --------------------------------------------------
+            if not service:
+                service = service_name
+
+            # ==================================================
             # EXPLICIT FAILURE TYPE
-            # --------------------------------------------------
+            # ==================================================
 
             explicit_failure_type = get_first_tag(
                 span,
@@ -212,9 +235,9 @@ def extract_failure_traces(service_name, limit=100):
                 explicit_failure_type
             )
 
-            # --------------------------------------------------
+            # ==================================================
             # STATUS CODE
-            # --------------------------------------------------
+            # ==================================================
 
             status_code = get_first_tag(
                 span,
@@ -226,7 +249,6 @@ def extract_failure_traces(service_name, limit=100):
             )
 
             try:
-
                 status_code_int = (
                     int(status_code)
                     if status_code is not None
@@ -234,12 +256,11 @@ def extract_failure_traces(service_name, limit=100):
                 )
 
             except (ValueError, TypeError):
-
                 status_code_int = None
 
-            # --------------------------------------------------
+            # ==================================================
             # ERROR / OTEL STATUS
-            # --------------------------------------------------
+            # ==================================================
 
             error_tag = get_first_tag(
                 span,
@@ -270,9 +291,9 @@ def extract_failure_traces(service_name, limit=100):
                 ],
             )
 
-            # --------------------------------------------------
+            # ==================================================
             # TIMING
-            # --------------------------------------------------
+            # ==================================================
 
             start_time = span.get("startTime")
 
@@ -283,19 +304,17 @@ def extract_failure_traces(service_name, limit=100):
             if duration is not None:
 
                 try:
-
                     duration_ms = round(
                         int(duration) / 1000,
-                        2
+                        2,
                     )
 
                 except (ValueError, TypeError):
-
                     duration_ms = None
 
-            # --------------------------------------------------
+            # ==================================================
             # END TIME
-            # --------------------------------------------------
+            # ==================================================
 
             end_time = None
 
@@ -305,36 +324,31 @@ def extract_failure_traces(service_name, limit=100):
             ):
 
                 try:
-
                     end_time = (
                         int(start_time)
                         + int(duration)
                     )
 
                 except (ValueError, TypeError):
-
                     end_time = None
 
-            # --------------------------------------------------
+            # ==================================================
             # FAILURE DETECTION
-            # --------------------------------------------------
+            # ==================================================
 
             is_failure = False
 
-            # Explicit failure type is ALWAYS a failure
+            # --------------------------------------------------
+            # 1. EXPLICIT FAILURE TYPE
+            # --------------------------------------------------
+
             if explicit_failure_type:
-
                 is_failure = True
 
-            # HTTP 5xx
-            if (
-                status_code_int is not None
-                and status_code_int >= 500
-            ):
+            # --------------------------------------------------
+            # 2. PAYMENT 402
+            # --------------------------------------------------
 
-                is_failure = True
-
-            # Payment failure
             if (
                 service == "payment-service"
                 and status_code_int == 402
@@ -345,39 +359,56 @@ def extract_failure_traces(service_name, limit=100):
                 if not explicit_failure_type:
                     explicit_failure_type = "payment_failure"
 
-            # Explicit error
-            if error_tag is True:
+            # --------------------------------------------------
+            # 3. HTTP 5XX
+            # --------------------------------------------------
 
+            if (
+                status_code_int is not None
+                and status_code_int >= 500
+            ):
+                is_failure = True
+
+            # --------------------------------------------------
+            # 4. EXPLICIT ERROR
+            # --------------------------------------------------
+
+            if error_tag is True:
                 is_failure = True
 
             if str(error_tag).lower() == "true":
-
                 is_failure = True
 
-            # OpenTelemetry ERROR
+            # --------------------------------------------------
+            # 5. OTEL ERROR
+            # --------------------------------------------------
+
             if (
                 str(otel_status).upper()
                 == "ERROR"
             ):
-
                 is_failure = True
 
-            # Exception
+            # --------------------------------------------------
+            # 6. EXCEPTION
+            # --------------------------------------------------
+
             if (
                 exception_type
                 or exception_message
             ):
-
                 is_failure = True
 
-            # Failure words
+            # --------------------------------------------------
+            # 7. FAILURE WORDS
+            # --------------------------------------------------
+
             if span_contains_failure_text(span):
-
                 is_failure = True
 
-            # --------------------------------------------------
+            # ==================================================
             # TIMEOUT DETECTION
-            # --------------------------------------------------
+            # ==================================================
 
             operation_lower = str(
                 operation
@@ -398,49 +429,29 @@ def extract_failure_traces(service_name, limit=100):
                 for word in [
                     "timeout",
                     "timed out",
-                    "deadline",
                     "deadline exceeded",
                 ]
             )
 
+            # IMPORTANT:
+            # We only classify a timeout when the trace actually
+            # contains timeout evidence.
+            #
+            # A 4+ second operation by itself is NOT enough.
+
             if timeout_detected:
-
                 is_failure = True
 
-            # --------------------------------------------------
-            # LONG RUNNING INVENTORY RESERVATION
-            # --------------------------------------------------
-
-            # ONLY use this heuristic when there is
-            # no explicit failure type.
-
-            if (
-                not explicit_failure_type
-                and duration_ms is not None
-                and duration_ms >= 4000
-                and (
-                    "inventory"
-                    in operation_lower
-                    or "reserve"
-                    in operation_lower
-                )
-            ):
-
-                is_failure = True
-
-                timeout_detected = True
-
-            # --------------------------------------------------
+            # ==================================================
             # NORMAL SPANS
-            # --------------------------------------------------
+            # ==================================================
 
             if not is_failure:
-
                 continue
 
-            # --------------------------------------------------
+            # ==================================================
             # FAILURE TYPE
-            # --------------------------------------------------
+            # ==================================================
 
             if explicit_failure_type:
 
@@ -468,16 +479,14 @@ def extract_failure_traces(service_name, limit=100):
 
             elif exception_type:
 
-                exception_lower = (
-                    str(exception_type)
-                    .lower()
-                )
+                exception_lower = str(
+                    exception_type
+                ).lower()
 
                 if (
-                    "database"
-                    in exception_lower
-                    or "sql"
-                    in exception_lower
+                    "database" in exception_lower
+                    or "sql" in exception_lower
+                    or "postgres" in exception_lower
                 ):
 
                     failure_type = (
@@ -496,9 +505,9 @@ def extract_failure_traces(service_name, limit=100):
                     "service_failure"
                 )
 
-            # --------------------------------------------------
+            # ==================================================
             # PRODUCT ID
-            # --------------------------------------------------
+            # ==================================================
 
             product_id = get_first_tag(
                 span,
@@ -511,9 +520,9 @@ def extract_failure_traces(service_name, limit=100):
                 ],
             )
 
-            # --------------------------------------------------
+            # ==================================================
             # QUANTITY
-            # --------------------------------------------------
+            # ==================================================
 
             quantity = get_first_tag(
                 span,
@@ -525,9 +534,9 @@ def extract_failure_traces(service_name, limit=100):
                 ],
             )
 
-            # --------------------------------------------------
+            # ==================================================
             # HTTP METHOD
-            # --------------------------------------------------
+            # ==================================================
 
             http_method = get_first_tag(
                 span,
@@ -537,9 +546,9 @@ def extract_failure_traces(service_name, limit=100):
                 ],
             )
 
-            # --------------------------------------------------
+            # ==================================================
             # RESULT
-            # --------------------------------------------------
+            # ==================================================
 
             failure_traces.append(
                 {
@@ -551,10 +560,7 @@ def extract_failure_traces(service_name, limit=100):
                     "product_id": product_id,
                     "quantity": quantity,
                     "status_code": status_code_int,
-                    "service": (
-                        service
-                        or service_name
-                    ),
+                    "service": service,
                     "start_time": start_time,
                     "end_time": end_time,
                     "duration_ms": duration_ms,

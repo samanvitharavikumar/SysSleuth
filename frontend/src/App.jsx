@@ -7,30 +7,32 @@ function App() {
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
 
-  const [checkoutError, setCheckoutError] = useState(null);
+  const [checkoutError, setCheckoutError] = useState(false);
   const [error, setError] = useState(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [latencyWarning, setLatencyWarning] = useState(false);
-  const [failureInfo, setFailureInfo] = useState(null);
 
-  // -----------------------------
-  // Load products
-  // -----------------------------
+  // --------------------------------------------------
+  // LOAD PRODUCTS
+  // --------------------------------------------------
+
   useEffect(() => {
     axios
       .get("http://localhost:8004/products")
       .then((response) => {
         setProducts(response.data);
+        setError(null);
       })
       .catch((err) => {
         console.error(err);
-        setError("Could not load products");
+        setError("Could not load products.");
       });
   }, []);
 
-  // -----------------------------
-  // Add to cart
-  // -----------------------------
+  // --------------------------------------------------
+  // CART
+  // --------------------------------------------------
+
   const addToCart = (product) => {
     setCart((currentCart) => {
       const existing = currentCart.find(
@@ -55,9 +57,6 @@ function App() {
     });
   };
 
-  // -----------------------------
-  // Decrease quantity
-  // -----------------------------
   const decreaseQuantity = (productId) => {
     setCart((currentCart) =>
       currentCart
@@ -70,23 +69,20 @@ function App() {
     );
   };
 
-  // -----------------------------
-  // Remove completely
-  // -----------------------------
   const removeFromCart = (productId) => {
     setCart((currentCart) =>
       currentCart.filter((item) => item.product_id !== productId)
     );
   };
 
-  // -----------------------------
-  // Checkout
-  // -----------------------------
+  // --------------------------------------------------
+  // CHECKOUT
+  // --------------------------------------------------
+
   const checkout = async () => {
     if (cart.length === 0) return;
 
-    setCheckoutError(null);
-    setFailureInfo(null);
+    setCheckoutError(false);
     setLatencyWarning(false);
     setIsCheckingOut(true);
 
@@ -106,13 +102,7 @@ function App() {
       for (const item of cart) {
         const amount = Number(item.price_inr) * item.quantity;
 
-        console.log("Sending order:", {
-          item_id: item.product_id,
-          quantity: item.quantity,
-          amount,
-        });
-
-        const response = await axios.post(
+        await axios.post(
           "http://localhost:8001/orders",
           null,
           {
@@ -124,18 +114,15 @@ function App() {
             timeout: 10000,
           }
         );
-
-        console.log("Order successful:", response.data);
       }
 
       if (latencyTimer) clearTimeout(latencyTimer);
 
       setLatencyWarning(false);
-
-      alert("Order placed successfully!");
-
       setCart([]);
       setCartOpen(false);
+
+      alert("Order placed successfully!");
     } catch (err) {
       console.error("Checkout failed:", err);
 
@@ -143,121 +130,32 @@ function App() {
 
       setLatencyWarning(false);
 
-      const failedItem = cart[0];
-
-      const failedProductId = failedItem
-        ? Number(failedItem.product_id)
-        : null;
-
-      const backendMessage =
-        err.response?.data?.detail ||
-        err.response?.data?.error ||
-        "Something went wrong during checkout.";
-
-      // PRODUCT 7 — CASCADING FAILURE
-      if (failedProductId === 7) {
-        setFailureInfo({
-          type: "cascading",
-          productId: 7,
-          title: "Cascading Service Failure",
-          message:
-            "A failure in one service caused dependent services to fail.",
-          backendError: backendMessage,
-        });
-
-        setCheckoutError(
-          "A dependent service failed while processing your order."
-        );
-
-        return;
-      }
-
-      // PRODUCT 6 — TIMEOUT
-      if (failedProductId === 6) {
-        setFailureInfo({
-          type: "timeout",
-          productId: 6,
-          title: "Request Timed Out",
-          message: "The inventory service took too long to respond.",
-          backendError: backendMessage,
-        });
-
-        setCheckoutError("The request took too long to complete.");
-
-        return;
-      }
-
-      // PRODUCT 5 — SERVICE CRASH
-      if (failedProductId === 5) {
-        setFailureInfo({
-          type: "service_crash",
-          productId: 5,
-          title: "Service Crash",
-          message:
-            "The inventory service stopped unexpectedly while processing the request.",
-          backendError: backendMessage,
-        });
-
-        setCheckoutError(
-          "The inventory service became unavailable."
-        );
-
-        return;
-      }
-
-      // PRODUCT 8 — PAYMENT FAILURE
-      if (failedProductId === 8) {
-        setFailureInfo({
-          type: "payment",
-          productId: 8,
-          title: "Payment Failure",
-          message:
-            "The payment service could not complete the transaction.",
-          backendError: backendMessage,
-        });
-
-        setCheckoutError("Payment could not be completed.");
-
-        return;
-      }
-
-      // INVENTORY / OTHER FAILURE
-      setFailureInfo({
-        type: "inventory",
-        productId: failedProductId,
-        title: "Inventory Failure",
-        message: backendMessage,
-        backendError: backendMessage,
-      });
-
-      if (err.response) {
-        setCheckoutError(backendMessage);
-      } else {
-        setCheckoutError(
-          "We couldn't connect to the order service."
-        );
-      }
+      // Intentionally do NOT expose backend failure details here.
+      setCheckoutError(true);
     } finally {
       setIsCheckingOut(false);
     }
   };
 
-  // -----------------------------
-  // Cart calculations
-  // -----------------------------
+  // --------------------------------------------------
+  // CALCULATIONS
+  // --------------------------------------------------
+
   const cartCount = cart.reduce(
     (total, item) => total + item.quantity,
     0
   );
 
   const cartTotal = cart.reduce(
-    (total, item) => total + item.price_inr * item.quantity,
+    (total, item) =>
+      total + Number(item.price_inr) * item.quantity,
     0
   );
 
-  // -----------------------------
-  // Categories
-  // -----------------------------
+  // --------------------------------------------------
+  // CATEGORIES
+  // --------------------------------------------------
+
   const categories = [
     "All",
     ...new Set(products.map((product) => product.category)),
@@ -270,163 +168,135 @@ function App() {
           (product) => product.category === category
         );
 
-  // -----------------------------
-  // Diagnostics
-  // -----------------------------
+  // --------------------------------------------------
+  // RCA
+  // --------------------------------------------------
+
   const findOutWhatHappened = () => {
-      window.location.href = "/rca";
+    window.location.href = "/rca";
   };
 
-  return (
-    <div className="min-h-screen overflow-x-hidden bg-[#050816] text-white">
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
 
-      {/* =====================================================
-          BACKGROUND GRAPHICS
-      ===================================================== */}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#DCEAF4] via-[#123B70] to-[#0B1F3A] text-[#111111]">
+
+      {/* ==================================================
+          BACKGROUND GRAPHIC
+      ================================================== */}
 
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
 
-        {/* Grid */}
         <div
-          className="absolute inset-0 opacity-[0.08]"
+          className="absolute inset-0 opacity-[0.035]"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(139,92,246,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.35) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
+              "linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)",
+            backgroundSize: "72px 72px",
           }}
         />
 
-        {/* Blue glow */}
-        <div className="absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-blue-600/20 blur-[150px]" />
+        <div className="absolute right-[-180px] top-[100px] h-[500px] w-[500px] border border-black/[0.04]" />
 
-        {/* Purple glow */}
-        <div className="absolute right-[-150px] top-[15%] h-[600px] w-[600px] rounded-full bg-violet-600/20 blur-[160px]" />
+        <div className="absolute right-[-120px] top-[160px] h-[380px] w-[380px] border border-black/[0.04]" />
 
-        {/* Bottom glow */}
-        <div className="absolute bottom-[-200px] left-[30%] h-[550px] w-[550px] rounded-full bg-indigo-600/15 blur-[150px]" />
       </div>
 
-      {/* =====================================================
+      {/* ==================================================
           NAVBAR
-      ===================================================== */}
+      ================================================== */}
 
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#050816]/75 backdrop-blur-2xl">
+      <header className="sticky top-0 z-50 border-b border-black/[0.08]/90 backdrop-blur-xl">
 
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
+        <div className="mx-auto flex h-[76px] max-w-[1500px] items-center justify-between px-6 lg:px-10">
 
-          {/* Logo */}
+          {/* LOGO */}
+
           <a
             href="#home"
-            className="group flex items-center gap-3"
+            className="flex items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 shadow-lg shadow-violet-600/25">
-              <span className="text-lg font-black">
-                S
-              </span>
-            </div>
 
             <div>
-              <div className="text-lg font-black tracking-[0.18em]">
-                SYSSLEUTH
-              </div>
-
-              <div className="text-[9px] font-medium tracking-[0.35em] text-violet-300">
-                PERFORMANCE LAB
+              <div className="text-[20px] font-bold tracking-[0.18em]">
+                KICKSTART
               </div>
             </div>
+
           </a>
 
-          {/* Navigation */}
-          <div className="hidden items-center gap-8 md:flex">
+          {/* NAV */}
+
+          <nav className="hidden items-center gap-10 md:flex">
 
             <a
               href="#home"
-              className="text-xs font-semibold tracking-[0.2em] text-gray-400 transition hover:text-white"
+              className="text-[19px] font-medium tracking-[0.16em] text-black/55 transition hover:text-black"
             >
               HOME
             </a>
 
             <a
               href="#products"
-              className="text-xs font-semibold tracking-[0.2em] text-gray-400 transition hover:text-white"
+              className="text-[19px] font-medium tracking-[0.16em] text-black/55 transition hover:text-black"
             >
               PRODUCTS
             </a>
 
-            <div className="relative">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="cursor-pointer appearance-none rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 pr-9 text-xs font-semibold tracking-wider text-gray-300 outline-none transition hover:border-violet-500/40 hover:bg-white/[0.08]"
-              >
-                {categories.map((cat) => (
-                  <option
-                    key={cat}
-                    value={cat}
-                    className="bg-[#090d1c]"
-                  >
-                    {cat}
-                  </option>
-                ))}
-              </select>
+          </nav>
 
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                ↓
-              </span>
-            </div>
-          </div>
+          {/* CART */}
 
-          {/* Cart */}
           <button
             onClick={() => setCartOpen(true)}
-            className="group relative flex items-center gap-3 rounded-xl border border-violet-400/20 bg-violet-500/10 px-5 py-3 text-xs font-bold tracking-widest text-violet-200 transition duration-300 hover:border-violet-400/50 hover:bg-violet-500/20 hover:shadow-[0_0_30px_rgba(139,92,246,0.18)]"
+            className="flex items-center gap-4 border border-black bg-black px-5 py-3 text-[10px] font-bold tracking-[0.18em] text-white transition hover:bg-[#222]"
           >
-            <span className="text-base">🛒</span>
-            <span className="hidden sm:inline">CART</span>
+            CART
 
-            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-violet-600 px-1.5 text-[10px] font-black text-white shadow-lg shadow-violet-600/30">
+            <span className="flex h-5 min-w-5 items-center justify-center border border-white/30 px-1 text-[9px]">
               {cartCount}
             </span>
           </button>
-        </div>
-      </nav>
 
-      {/* =====================================================
+        </div>
+
+      </header>
+
+      {/* ==================================================
           HERO
-      ===================================================== */}
+      ================================================== */}
 
       <section
         id="home"
-        className="relative mx-auto flex min-h-[650px] max-w-7xl items-center px-6 py-24 lg:px-10"
+        className="mx-auto max-w-[1500px] px-6 lg:px-10"
       >
 
-        {/* Decorative rings */}
-        <div className="pointer-events-none absolute right-[5%] top-[18%] hidden h-[420px] w-[420px] rounded-full border border-violet-500/10 md:block" />
+        <div className="grid min-h-[620px] grid-cols-1 items-center border-b border-black/[0.08] lg:grid-cols-[1.15fr_0.85fr]">
 
-        <div className="pointer-events-none absolute right-[9%] top-[22%] hidden h-[340px] w-[340px] rounded-full border border-blue-500/10 md:block" />
+          {/* LEFT */}
 
-        <div className="relative max-w-4xl">
+          <div className="py-24 lg:py-32">
 
-          <div className="mb-8 inline-flex items-center gap-3 rounded-full border border-violet-400/20 bg-violet-500/[0.07] px-4 py-2 text-[10px] font-bold tracking-[0.3em] text-violet-300">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-violet-400 shadow-[0_0_12px_rgba(167,139,250,0.9)]" />
-            NEXT-GENERATION COMMERCE
-          </div>
+            <div className="mb-8 flex items-center gap-3">
+              <span className="h-[1px] w-10 bg-black" />
+            </div>
 
-          <h1 className="text-6xl font-black leading-[0.95] tracking-[-0.05em] sm:text-7xl lg:text-[100px]">
-            STEP INTO
-            <br />
+            <h1 className="max-w-4xl text-[62px] font-semibold leading-[0.92] tracking-[-0.065em] sm:text-[82px] lg:text-[108px]">
 
-            <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-500 bg-clip-text text-transparent">
-              THE FUTURE.
-            </span>
-          </h1>
+              Luxury
 
-          <p className="mt-8 max-w-xl text-base leading-7 text-gray-400 sm:text-lg">
-            Discover iconic sneakers engineered for the next generation.
-            Premium silhouettes. Bold design. Zero compromise.
-          </p>
+              <br />
 
-          <div className="mt-10 flex flex-wrap gap-4">
+              <span className="text-black/30">
+                with comfort.
+              </span>
+
+            </h1>
+
+            <p className="mt-10 max-w-lg text-[15px] leading-7 text-black/50">
+            </p>
 
             <button
               onClick={() =>
@@ -436,123 +306,175 @@ function App() {
                     behavior: "smooth",
                   })
               }
-              className="group rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-7 py-4 text-xs font-black tracking-[0.2em] text-white shadow-xl shadow-violet-600/20 transition duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(139,92,246,0.35)]"
+              className="mt-10 border border-black bg-black px-7 py-4 text-[10px] font-bold tracking-[0.2em] text-white transition hover:bg-[#222]"
             >
-              EXPLORE COLLECTION
-              <span className="ml-3 transition group-hover:translate-x-1">
-                →
-              </span>
+              VIEW COLLECTION
+              <span className="ml-6">→</span>
             </button>
 
-            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4 backdrop-blur-xl">
-              <div className="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_12px_rgba(74,222,128,0.8)]" />
-              <span className="text-xs font-semibold tracking-wider text-gray-400">
-                SYSTEM ONLINE
-              </span>
-            </div>
           </div>
+
+          {/* RIGHT GRAPHIC */}
+
+          <div className="relative hidden h-full items-center justify-center lg:flex">
+
+            <div className="relative h-[430px] w-[430px] border border-black/[0.08]">
+
+              <div className="absolute inset-[45px] border border-black/[0.08]" />
+
+              <div className="absolute inset-[90px] border border-black/[0.08]" />
+
+              <div className="absolute left-1/2 top-0 h-full w-px bg-black/[0.06]" />
+
+              <div className="absolute left-0 top-1/2 h-px w-full bg-black/[0.06]" />
+
+              <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 bg-black" />
+
+              <div className="absolute bottom-5 left-5 text-[8px] font-medium tracking-[0.25em] text-black/30">
+                SS / 01
+              </div>
+
+              <div className="absolute right-5 top-5 text-[8px] font-medium tracking-[0.25em] text-black/30">
+                2026
+              </div>
+
+            </div>
+
+          </div>
+
         </div>
+
       </section>
 
-      {/* =====================================================
+      {/* ==================================================
           PRODUCTS
-      ===================================================== */}
+      ================================================== */}
 
       <main
         id="products"
-        className="mx-auto max-w-7xl px-6 pb-32 lg:px-10"
+        className="mx-auto max-w-[1500px] px-6 pb-32 lg:px-10"
       >
 
-        {/* Header */}
-        <div className="mb-10 flex flex-col justify-between gap-5 border-b border-white/10 pb-6 sm:flex-row sm:items-end">
+        {/* SECTION HEADER */}
+
+        <div className="flex items-end justify-between border-b border-black/[0.08] py-10">
 
           <div>
-            <p className="mb-3 font-mono text-[10px] tracking-[0.3em] text-violet-400">
-              &lt; PRODUCT_DATABASE /&gt;
+
+            <p className="mb-3 text-[9px] font-bold tracking-[0.25em] text-black/35">
+              COLLECTION
             </p>
 
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
-              FEATURED
-              <span className="ml-2 bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                SNEAKERS
-              </span>
+            <h2 className="text-4xl font-semibold tracking-[-0.04em]">
+              Products
             </h2>
+
           </div>
 
-          <div className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 font-mono text-[10px] tracking-widest text-gray-500">
-            {filteredProducts.length} ITEMS FOUND
+          <div className="text-right text-[9px] font-medium tracking-[0.18em] text-black/35">
+            {filteredProducts.length} ITEMS
           </div>
+
         </div>
 
-        {/* Error */}
+        {/* LOAD ERROR */}
+
         {error && (
-          <div className="mb-8 rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-300">
-            ⚠ {error}
+          <div className="border-b border-black/[0.08] py-8 text-sm text-black/50">
+            {error}
           </div>
         )}
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {/* PRODUCT GRID */}
 
-          {filteredProducts.map((product) => (
-            <div
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
+          {filteredProducts.map((product, index) => (
+
+            <article
               key={product.product_id}
-              className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.045] backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:border-violet-400/30 hover:bg-white/[0.07] hover:shadow-[0_20px_60px_rgba(76,29,149,0.22)]"
+              className="group relative border-b border-r border-black/[0.08] bg-[#f5f5f2] transition-colors hover:bg-white"
             >
 
-              {/* Glow */}
-              <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl transition duration-500 group-hover:bg-violet-500/20" />
+              {/* PRODUCT NUMBER */}
 
-              {/* Discount */}
+              <div className="absolute left-5 top-5 z-10 text-[8px] font-bold tracking-[0.18em] text-black/25">
+                {String(index + 1).padStart(2, "0")}
+              </div>
+
+              {/* DISCOUNT */}
+
               {product.discount && (
-                <div className="absolute left-4 top-4 z-10 rounded-full border border-violet-400/20 bg-[#080b18]/80 px-3 py-1.5 text-[10px] font-black tracking-wider text-violet-300 backdrop-blur-md">
+                <div className="absolute right-5 top-5 z-10 text-[8px] font-bold tracking-[0.16em]">
                   {product.discount}
                 </div>
               )}
 
-              {/* Product image */}
-              <div className="relative flex h-64 items-center justify-center overflow-hidden bg-gradient-to-br from-white/[0.06] to-transparent p-8">
+              {/* PRODUCT IMAGE */}
 
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12),transparent_60%)]" />
+              <div className="h-[300px] w-full overflow-hidden bg-[#f5f5f2]">
 
                 <img
                   src={product.image_url}
                   alt={product.product_name}
-                  className="relative z-10 max-h-full max-w-full object-contain drop-shadow-[0_25px_25px_rgba(0,0,0,0.45)] transition duration-700 group-hover:scale-110 group-hover:rotate-[-2deg]"
+                  className={`
+                    h-full
+                    w-full
+                    object-contain
+                    p-10
+                    transition-transform
+                    duration-500
+                    group-hover:scale-[1.03]
+
+                    ${
+                      [4, 5, 6, 7, 12, 13].includes(
+                        Number(product.product_id)
+                      )
+                        ? ""
+                        : "mix-blend-multiply"
+                    }
+                  `}
                 />
+
               </div>
 
-              {/* Product info */}
-              <div className="p-5">
+              {/* INFO */}
 
-                <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.25em] text-violet-400">
+              <div className="border-t border-black/[0.08] p-6">
+
+                <div className="mb-3 text-[8px] font-bold uppercase tracking-[0.22em] text-black/35">
                   {product.category}
                 </div>
 
-                <h3 className="min-h-[48px] text-base font-bold leading-6 text-white">
+                <h3 className="min-h-[48px] text-[15px] font-semibold leading-6 tracking-[-0.015em]">
                   {product.product_name}
                 </h3>
 
-                {/* Rating */}
-                <div className="mt-3 flex items-center gap-2 text-sm">
-                  <span className="text-yellow-400">
-                    ★
-                  </span>
+                {/* RATING */}
 
-                  <span className="font-semibold text-gray-300">
+                <div className="mt-4 flex items-center gap-2 text-[10px]">
+
+                  <span>★</span>
+
+                  <span className="font-medium">
                     {product.rating || "N/A"}
                   </span>
 
-                  <span className="text-xs text-gray-600">
-                    ({product.rating_count || "0"})
+                  <span className="text-black/30">
+                    {product.rating_count
+                      ? `(${product.rating_count})`
+                      : ""}
                   </span>
+
                 </div>
 
-                {/* Price */}
-                <div className="mt-5 flex items-end justify-between gap-3">
+                {/* PRICE */}
+
+                <div className="mt-6 flex items-end justify-between">
 
                   <div>
-                    <div className="text-2xl font-black tracking-tight">
+
+                    <div className="text-xl font-semibold tracking-[-0.025em]">
                       ₹
                       {Number(
                         product.price_inr
@@ -560,122 +482,144 @@ function App() {
                     </div>
 
                     {product.original_price_inr && (
-                      <div className="mt-1 text-xs text-gray-500 line-through">
+                      <div className="mt-1 text-[10px] text-black/30 line-through">
                         ₹
                         {Number(
                           product.original_price_inr
                         ).toLocaleString("en-IN")}
                       </div>
                     )}
+
                   </div>
 
-                  <button
-                    onClick={() => addToCart(product)}
-                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-lg shadow-lg shadow-violet-600/20 transition duration-300 hover:scale-110 hover:shadow-[0_0_25px_rgba(139,92,246,0.45)] active:scale-95"
-                    aria-label="Add to cart"
-                  >
-                    +
-                  </button>
                 </div>
+
+                {/* ADD TO CART */}
 
                 <button
                   onClick={() => addToCart(product)}
-                  className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.04] py-3 text-[10px] font-black tracking-[0.2em] text-gray-300 transition duration-300 hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
+                  className="mt-6 w-full border border-black bg-transparent py-3.5 text-[9px] font-bold tracking-[0.2em] transition group-hover:bg-black group-hover:text-white"
                 >
                   ADD TO CART
                 </button>
 
+                {/* GO TO CART */}
+
+                <button
+                  onClick={() => setCartOpen(true)}
+                  className="mt-2 w-full py-2 text-[8px] font-bold tracking-[0.18em] text-black/35 transition hover:text-black"
+                >
+                  GO TO CART →
+                </button>
+
               </div>
-            </div>
+
+            </article>
+
           ))}
+
         </div>
+
       </main>
 
-      {/* =====================================================
-          CART OVERLAY
-      ===================================================== */}
+      {/* ==================================================
+          CART DRAWER
+      ================================================== */}
 
       {cartOpen && (
+
         <div
-          className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md"
+          className="fixed inset-0 z-[100] bg-black/30"
           onClick={() => setCartOpen(false)}
         >
 
           <aside
-            className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col border-l border-white/10 bg-[#070a16]/95 shadow-[-30px_0_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+            className="absolute right-0 top-0 flex h-full w-full max-w-[470px] flex-col border-l border-black/10 bg-[#f5f5f2]"
             onClick={(e) => e.stopPropagation()}
           >
 
-            {/* Cart header */}
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-6">
+            {/* HEADER */}
+
+            <div className="flex items-center justify-between border-b border-black/10 px-7 py-7">
 
               <div>
-                <p className="mb-1 font-mono text-[9px] tracking-[0.3em] text-violet-400">
-                  &lt; CART /&gt;
+
+                <p className="mb-2 text-[8px] font-bold tracking-[0.25em] text-black/35">
+                  YOUR SELECTION
                 </p>
 
-                <h2 className="text-2xl font-black">
-                  YOUR CART
+                <h2 className="text-2xl font-semibold tracking-[-0.04em]">
+                  Cart
                 </h2>
+
               </div>
 
               <button
                 onClick={() => setCartOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-xl text-gray-400 transition hover:bg-white/[0.08] hover:text-white"
+                className="text-2xl font-light text-black/40 transition hover:text-black"
               >
                 ×
               </button>
+
             </div>
 
-            {/* Cart content */}
-            {cart.length === 0 ? (
-              <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+            {/* CONTENT */}
 
-                <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-violet-400/20 bg-violet-500/10 text-3xl">
-                  🛒
+            {cart.length === 0 ? (
+
+              <div className="flex flex-1 items-center justify-center">
+
+                <div className="text-center">
+
+                  <div className="text-5xl font-light text-black/10">
+                    0
+                  </div>
+
+                  <p className="mt-4 text-[10px] font-bold tracking-[0.2em] text-black/40">
+                    YOUR CART IS EMPTY
+                  </p>
+
                 </div>
 
-                <h3 className="text-xl font-black">
-                  CART EMPTY
-                </h3>
-
-                <p className="mt-2 text-sm text-gray-500">
-                  No products have been selected.
-                </p>
               </div>
+
             ) : (
+
               <>
-                {/* Items */}
-                <div className="flex-1 space-y-4 overflow-y-auto p-6">
+
+                <div className="flex-1 overflow-y-auto">
 
                   {cart.map((item) => (
+
                     <div
                       key={item.product_id}
-                      className="flex gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                      className="flex gap-5 border-b border-black/10 p-6"
                     >
 
-                      <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-white/[0.05]">
+                      <div className="flex h-24 w-24 shrink-0 items-center justify-center bg-white">
+
                         <img
                           src={item.image_url}
                           alt={item.product_name}
-                          className="max-h-full max-w-full object-contain"
+                          className="max-h-full max-w-full object-contain p-3"
                         />
+
                       </div>
 
-                      <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 flex-1 flex-col">
 
-                        <h4 className="line-clamp-2 text-sm font-bold leading-5">
+                        <h4 className="text-[13px] font-semibold leading-5">
                           {item.product_name}
                         </h4>
 
-                        <p className="mt-2 text-sm font-black text-violet-300">
+                        <p className="mt-2 text-sm font-medium">
                           ₹
                           {Number(
                             item.price_inr
                           ).toLocaleString("en-IN")}
                         </p>
 
-                        <div className="mt-3 flex items-center gap-2">
+                        <div className="mt-auto flex items-center gap-4">
 
                           <button
                             onClick={() =>
@@ -683,12 +627,12 @@ function App() {
                                 item.product_id
                               )
                             }
-                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-gray-300 hover:bg-white/[0.1]"
+                            className="text-lg font-light text-black/50 hover:text-black"
                           >
                             −
                           </button>
 
-                          <span className="w-6 text-center text-xs font-bold">
+                          <span className="text-[11px] font-semibold">
                             {item.quantity}
                           </span>
 
@@ -696,7 +640,7 @@ function App() {
                             onClick={() =>
                               addToCart(item)
                             }
-                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-gray-300 hover:bg-white/[0.1]"
+                            className="text-lg font-light text-black/50 hover:text-black"
                           >
                             +
                           </button>
@@ -707,155 +651,143 @@ function App() {
                                 item.product_id
                               )
                             }
-                            className="ml-auto text-[9px] font-bold tracking-wider text-gray-600 transition hover:text-red-400"
+                            className="ml-auto text-[8px] font-bold tracking-[0.15em] text-black/30 hover:text-black"
                           >
                             REMOVE
                           </button>
 
                         </div>
+
                       </div>
+
                     </div>
+
                   ))}
+
                 </div>
 
-                {/* Footer */}
-                <div className="border-t border-white/10 bg-black/10 p-6">
+                {/* FOOTER */}
 
-                  <div className="mb-5 flex items-end justify-between">
+                <div className="border-t border-black/10 p-7">
 
-                    <span className="text-xs font-bold tracking-[0.2em] text-gray-500">
+                  <div className="flex items-end justify-between">
+
+                    <span className="text-[9px] font-bold tracking-[0.2em] text-black/40">
                       TOTAL
                     </span>
 
-                    <strong className="text-3xl font-black">
+                    <span className="text-2xl font-semibold tracking-[-0.03em]">
                       ₹
-                      {cartTotal.toLocaleString(
-                        "en-IN"
-                      )}
-                    </strong>
+                      {cartTotal.toLocaleString("en-IN")}
+                    </span>
+
                   </div>
 
                   <button
                     onClick={checkout}
                     disabled={isCheckingOut}
-                    className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 py-4 text-xs font-black tracking-[0.2em] text-white shadow-xl shadow-violet-600/20 transition hover:shadow-[0_0_35px_rgba(139,92,246,0.35)] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-7 w-full border border-black bg-black py-4 text-[9px] font-bold tracking-[0.2em] text-white transition hover:bg-[#222] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {isCheckingOut
                       ? "PROCESSING..."
-                      : "PROCEED TO CHECKOUT →"}
+                      : "CHECKOUT →"}
                   </button>
+
                 </div>
+
               </>
+
             )}
+
           </aside>
+
         </div>
+
       )}
 
-      {/* =====================================================
-          LATENCY WARNING
-      ===================================================== */}
+      {/* ==================================================
+          LATENCY
+      ================================================== */}
 
       {latencyWarning && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#02030a]/80 px-4 backdrop-blur-xl">
 
-          <div className="w-full max-w-md rounded-3xl border border-blue-400/20 bg-[#080c1b]/95 p-10 text-center shadow-[0_0_100px_rgba(59,130,246,0.15)]">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30">
 
-            <div className="mx-auto mb-7 flex h-20 w-20 items-center justify-center rounded-full border border-blue-400/20 bg-blue-500/10">
+          <div className="w-full max-w-sm border border-black/10 bg-[#f5f5f2] p-10 text-center">
 
-              <div className="h-9 w-9 animate-spin rounded-full border-4 border-white/10 border-t-blue-400" />
+            <div className="mx-auto mb-7 h-8 w-8 border-2 border-black/15 border-t-black animate-spin" />
 
-            </div>
-
-            <div className="mb-2 font-mono text-[9px] tracking-[0.3em] text-blue-400">
-              SYSTEM RESPONSE DELAY
-            </div>
-
-            <h2 className="text-3xl font-black">
-              PLEASE WAIT
+            <h2 className="text-2xl font-semibold tracking-[-0.04em]">
+              Please wait.
             </h2>
 
-            <p className="mt-4 text-gray-400">
-              This request is taking longer than expected.
-            </p>
-
-            <p className="mt-2 text-xs text-gray-600">
-              The inventory service is still processing your order.
+            <p className="mt-3 text-sm text-black/40">
+              Your order is being processed.
             </p>
 
           </div>
+
         </div>
+
       )}
 
-      {/* =====================================================
-          CHECKOUT ERROR
-      ===================================================== */}
+      {/* ==================================================
+          ERROR
+      ================================================== */}
 
       {checkoutError && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#02030a]/80 px-4 backdrop-blur-xl">
 
-          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-violet-400/20 bg-[#080c1b]/95 p-8 text-center shadow-[0_0_100px_rgba(139,92,246,0.15)]">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/45 px-6">
 
-            {/* Decorative glow */}
-            <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-violet-600/20 blur-3xl" />
+          <div className="w-full max-w-[460px] border border-black/10 bg-[#f5f5f2] p-10">
 
-            <button
-              className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-lg text-xl text-gray-500 transition hover:bg-white/[0.06] hover:text-white"
-              onClick={() => {
-                setCheckoutError(null);
-                setFailureInfo(null);
-              }}
-              aria-label="Close error"
-            >
-              ×
-            </button>
+            <div className="mb-10 flex items-center justify-between">
 
-            <div className="relative">
+              <span className="text-[9px] font-bold tracking-[0.25em] text-black/35">
+                ORDER
+              </span>
 
-              {/* Error icon */}
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-red-400/20 bg-red-500/10 text-3xl text-red-400 shadow-[0_0_30px_rgba(239,68,68,0.12)]">
-                !
-              </div>
+              <button
+                onClick={() => setCheckoutError(false)}
+                className="text-xl font-light text-black/40 hover:text-black"
+              >
+                ×
+              </button>
 
-              <div className="mb-2 font-mono text-[9px] tracking-[0.3em] text-red-400">
-                CHECKOUT FAILURE
-              </div>
-
-              <h2 className="text-3xl font-black">
-                UH-OH!
-              </h2>
-
-              <p className="mt-3 text-gray-400">
-                Something went wrong.
-              </p>
-
-              <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left text-sm leading-6 text-gray-400">
-                {checkoutError}
-              </div>
-
-              <div className="mt-6 space-y-3">
-
-                <button
-                  className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-6 py-4 text-xs font-black tracking-[0.2em] text-white transition hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] active:scale-[0.98]"
-                  onClick={() => {
-                    setCheckoutError(null);
-                    setFailureInfo(null);
-                  }}
-                >
-                  TRY AGAIN
-                </button>
-
-                <button
-                  className="w-full rounded-xl border border-violet-400/30 bg-violet-500/[0.06] px-6 py-4 text-xs font-black tracking-[0.2em] text-violet-300 transition hover:bg-violet-500/10 active:scale-[0.98]"
-                  onClick={findOutWhatHappened}
-                >
-                  FIND OUT WHAT HAPPENED →
-                </button>
-
-              </div>
             </div>
+
+            <h2 className="text-6xl font-semibold tracking-[-0.06em]">
+              UH-OH.
+            </h2>
+
+            <p className="mt-5 text-sm text-black/45">
+              Something went wrong.
+            </p>
+
+            <div className="mt-10 grid gap-2">
+
+              <button
+                onClick={() => setCheckoutError(false)}
+                className="w-full border border-black bg-black py-4 text-[9px] font-bold tracking-[0.2em] text-white transition hover:bg-[#222]"
+              >
+                TRY AGAIN
+              </button>
+
+              <button
+                onClick={findOutWhatHappened}
+                className="w-full border border-black/15 py-4 text-[9px] font-bold tracking-[0.2em] transition hover:border-black hover:bg-white"
+              >
+                FIND OUT WHAT HAPPENED →
+              </button>
+
+            </div>
+
           </div>
+
         </div>
+
       )}
+
     </div>
   );
 }
