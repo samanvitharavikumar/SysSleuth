@@ -601,8 +601,9 @@ def classify_failure(
             )
 
             if failure_type in [
-                "payment_failure",
                 "database_failure",
+                "payment_failure",
+                
                 "service_crash",
                 "timeout",
                 "cascading_failure",
