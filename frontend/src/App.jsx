@@ -36,13 +36,17 @@ function App() {
   const addToCart = (product) => {
     setCart((currentCart) => {
       const existing = currentCart.find(
-        (item) => item.product_id === product.product_id
+        (item) =>
+          item.product_id === product.product_id
       );
 
       if (existing) {
         return currentCart.map((item) =>
           item.product_id === product.product_id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? {
+                ...item,
+                quantity: item.quantity + 1,
+              }
             : item
         );
       }
@@ -62,16 +66,24 @@ function App() {
       currentCart
         .map((item) =>
           item.product_id === productId
-            ? { ...item, quantity: item.quantity - 1 }
+            ? {
+                ...item,
+                quantity: item.quantity - 1,
+              }
             : item
         )
-        .filter((item) => item.quantity > 0)
+        .filter(
+          (item) => item.quantity > 0
+        )
     );
   };
 
   const removeFromCart = (productId) => {
     setCart((currentCart) =>
-      currentCart.filter((item) => item.product_id !== productId)
+      currentCart.filter(
+        (item) =>
+          item.product_id !== productId
+      )
     );
   };
 
@@ -87,7 +99,8 @@ function App() {
     setIsCheckingOut(true);
 
     const hasLatencyProduct = cart.some(
-      (item) => Number(item.product_id) === 6
+      (item) =>
+        Number(item.product_id) === 6
     );
 
     let latencyTimer;
@@ -98,40 +111,83 @@ function App() {
       }, 3000);
     }
 
+    // This always points to the item whose request
+    // is currently being processed.
+    let currentItem = null;
+
     try {
       for (const item of cart) {
-        const amount = Number(item.price_inr) * item.quantity;
+        currentItem = item;
+
+        const amount =
+          Number(item.price_inr) *
+          item.quantity;
 
         await axios.post(
           "http://localhost:8001/orders",
           null,
           {
             params: {
-              item_id: String(item.product_id),
+              item_id: String(
+                item.product_id
+              ),
               quantity: item.quantity,
               amount,
             },
+
             timeout: 10000,
           }
         );
       }
 
-      if (latencyTimer) clearTimeout(latencyTimer);
+      if (latencyTimer) {
+        clearTimeout(latencyTimer);
+      }
 
       setLatencyWarning(false);
+
       setCart([]);
+
       setCartOpen(false);
 
-      alert("Order placed successfully!");
-    } catch (err) {
-      console.error("Checkout failed:", err);
+      // No failed RCA remains after a successful checkout.
+      sessionStorage.removeItem(
+        "rca_product_id"
+      );
 
-      if (latencyTimer) clearTimeout(latencyTimer);
+      alert(
+        "Order placed successfully!"
+      );
+
+    } catch (err) {
+      console.error(
+        "Checkout failed:",
+        err
+      );
+
+      if (latencyTimer) {
+        clearTimeout(latencyTimer);
+      }
 
       setLatencyWarning(false);
 
-      // Intentionally do NOT expose backend failure details here.
+      // --------------------------------------------------
+      // REMEMBER FAILED PRODUCT
+      // --------------------------------------------------
+
+      if (currentItem) {
+        sessionStorage.setItem(
+          "rca_product_id",
+          String(
+            currentItem.product_id
+          )
+        );
+      }
+
+      // Intentionally do NOT expose backend
+      // failure details here.
       setCheckoutError(true);
+
     } finally {
       setIsCheckingOut(false);
     }
@@ -142,13 +198,16 @@ function App() {
   // --------------------------------------------------
 
   const cartCount = cart.reduce(
-    (total, item) => total + item.quantity,
+    (total, item) =>
+      total + item.quantity,
     0
   );
 
   const cartTotal = cart.reduce(
     (total, item) =>
-      total + Number(item.price_inr) * item.quantity,
+      total +
+      Number(item.price_inr) *
+        item.quantity,
     0
   );
 
@@ -158,14 +217,21 @@ function App() {
 
   const categories = [
     "All",
-    ...new Set(products.map((product) => product.category)),
+    ...new Set(
+      products.map(
+        (product) =>
+          product.category
+      )
+    ),
   ];
 
   const filteredProducts =
     category === "All"
       ? products
       : products.filter(
-          (product) => product.category === category
+          (product) =>
+            product.category ===
+            category
         );
 
   // --------------------------------------------------
@@ -173,7 +239,20 @@ function App() {
   // --------------------------------------------------
 
   const findOutWhatHappened = () => {
-    window.location.href = "/rca";
+    const productId =
+      sessionStorage.getItem(
+        "rca_product_id"
+      );
+
+    if (productId) {
+      window.location.href =
+        `/rca?product_id=${encodeURIComponent(
+          productId
+        )}`;
+    } else {
+      window.location.href =
+        "/rca";
+    }
   };
 
   // --------------------------------------------------
@@ -194,7 +273,8 @@ function App() {
           style={{
             backgroundImage:
               "linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)",
-            backgroundSize: "72px 72px",
+            backgroundSize:
+              "72px 72px",
           }}
         />
 
@@ -218,13 +298,11 @@ function App() {
             href="#home"
             className="flex items-center gap-3"
           >
-
             <div>
               <div className="text-[20px] font-bold tracking-[0.18em]">
                 KICKSTART
               </div>
             </div>
-
           </a>
 
           {/* NAV */}
@@ -250,7 +328,9 @@ function App() {
           {/* CART */}
 
           <button
-            onClick={() => setCartOpen(true)}
+            onClick={() =>
+              setCartOpen(true)
+            }
             className="flex items-center gap-4 border border-black bg-black px-5 py-3 text-[10px] font-bold tracking-[0.18em] text-white transition hover:bg-[#222]"
           >
             CART
@@ -258,6 +338,7 @@ function App() {
             <span className="flex h-5 min-w-5 items-center justify-center border border-white/30 px-1 text-[9px]">
               {cartCount}
             </span>
+
           </button>
 
         </div>
@@ -301,15 +382,20 @@ function App() {
             <button
               onClick={() =>
                 document
-                  .getElementById("products")
+                  .getElementById(
+                    "products"
+                  )
                   ?.scrollIntoView({
-                    behavior: "smooth",
+                    behavior:
+                      "smooth",
                   })
               }
               className="mt-10 border border-black bg-black px-7 py-4 text-[10px] font-bold tracking-[0.2em] text-white transition hover:bg-[#222]"
             >
               VIEW COLLECTION
-              <span className="ml-6">→</span>
+              <span className="ml-6">
+                →
+              </span>
             </button>
 
           </div>
@@ -372,7 +458,8 @@ function App() {
           </div>
 
           <div className="text-right text-[9px] font-medium tracking-[0.18em] text-black/35">
-            {filteredProducts.length} ITEMS
+            {filteredProducts.length}{" "}
+            ITEMS
           </div>
 
         </div>
@@ -389,134 +476,162 @@ function App() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 
-          {filteredProducts.map((product, index) => (
+          {filteredProducts.map(
+            (product, index) => (
 
-            <article
-              key={product.product_id}
-              className="group relative border-b border-r border-black/[0.08] bg-[#f5f5f2] transition-colors hover:bg-white"
-            >
+              <article
+                key={
+                  product.product_id
+                }
+                className="group relative border-b border-r border-black/[0.08] bg-[#f5f5f2] transition-colors hover:bg-white"
+              >
 
-              {/* PRODUCT NUMBER */}
+                {/* PRODUCT NUMBER */}
 
-              <div className="absolute left-5 top-5 z-10 text-[8px] font-bold tracking-[0.18em] text-black/25">
-                {String(index + 1).padStart(2, "0")}
-              </div>
-
-              {/* DISCOUNT */}
-
-              {product.discount && (
-                <div className="absolute right-5 top-5 z-10 text-[8px] font-bold tracking-[0.16em]">
-                  {product.discount}
+                <div className="absolute left-5 top-5 z-10 text-[8px] font-bold tracking-[0.18em] text-black/25">
+                  {String(
+                    index + 1
+                  ).padStart(2, "0")}
                 </div>
-              )}
 
-              {/* PRODUCT IMAGE */}
+                {/* DISCOUNT */}
 
-              <div className="h-[300px] w-full overflow-hidden bg-[#f5f5f2]">
+                {product.discount && (
+                  <div className="absolute right-5 top-5 z-10 text-[8px] font-bold tracking-[0.16em]">
+                    {product.discount}
+                  </div>
+                )}
 
-                <img
-                  src={product.image_url}
-                  alt={product.product_name}
-                  className={`
-                    h-full
-                    w-full
-                    object-contain
-                    p-10
-                    transition-transform
-                    duration-500
-                    group-hover:scale-[1.03]
+                {/* PRODUCT IMAGE */}
 
-                    ${
-                      [4, 5, 6, 7, 12, 13].includes(
-                        Number(product.product_id)
-                      )
-                        ? ""
-                        : "mix-blend-multiply"
+                <div className="h-[300px] w-full overflow-hidden bg-[#f5f5f2]">
+
+                  <img
+                    src={product.image_url}
+                    alt={
+                      product.product_name
                     }
-                  `}
-                />
+                    className={`
+                      h-full
+                      w-full
+                      object-contain
+                      p-10
+                      transition-transform
+                      duration-500
+                      group-hover:scale-[1.03]
 
-              </div>
-
-              {/* INFO */}
-
-              <div className="border-t border-black/[0.08] p-6">
-
-                <div className="mb-3 text-[8px] font-bold uppercase tracking-[0.22em] text-black/35">
-                  {product.category}
-                </div>
-
-                <h3 className="min-h-[48px] text-[15px] font-semibold leading-6 tracking-[-0.015em]">
-                  {product.product_name}
-                </h3>
-
-                {/* RATING */}
-
-                <div className="mt-4 flex items-center gap-2 text-[10px]">
-
-                  <span>★</span>
-
-                  <span className="font-medium">
-                    {product.rating || "N/A"}
-                  </span>
-
-                  <span className="text-black/30">
-                    {product.rating_count
-                      ? `(${product.rating_count})`
-                      : ""}
-                  </span>
+                      ${
+                        [
+                          4,
+                          5,
+                          6,
+                          7,
+                          12,
+                          13,
+                        ].includes(
+                          Number(
+                            product.product_id
+                          )
+                        )
+                          ? ""
+                          : "mix-blend-multiply"
+                      }
+                    `}
+                  />
 
                 </div>
 
-                {/* PRICE */}
+                {/* INFO */}
 
-                <div className="mt-6 flex items-end justify-between">
+                <div className="border-t border-black/[0.08] p-6">
 
-                  <div>
+                  <div className="mb-3 text-[8px] font-bold uppercase tracking-[0.22em] text-black/35">
+                    {product.category}
+                  </div>
 
-                    <div className="text-xl font-semibold tracking-[-0.025em]">
-                      ₹
-                      {Number(
-                        product.price_inr
-                      ).toLocaleString("en-IN")}
-                    </div>
+                  <h3 className="min-h-[48px] text-[15px] font-semibold leading-6 tracking-[-0.015em]">
+                    {product.product_name}
+                  </h3>
 
-                    {product.original_price_inr && (
-                      <div className="mt-1 text-[10px] text-black/30 line-through">
-                        ₹
-                        {Number(
-                          product.original_price_inr
-                        ).toLocaleString("en-IN")}
-                      </div>
-                    )}
+                  {/* RATING */}
+
+                  <div className="mt-4 flex items-center gap-2 text-[10px]">
+
+                    <span>★</span>
+
+                    <span className="font-medium">
+                      {product.rating ||
+                        "N/A"}
+                    </span>
+
+                    <span className="text-black/30">
+                      {product.rating_count
+                        ? `(${product.rating_count})`
+                        : ""}
+                    </span>
 
                   </div>
 
+                  {/* PRICE */}
+
+                  <div className="mt-6 flex items-end justify-between">
+
+                    <div>
+
+                      <div className="text-xl font-semibold tracking-[-0.025em]">
+                        ₹
+                        {Number(
+                          product.price_inr
+                        ).toLocaleString(
+                          "en-IN"
+                        )}
+                      </div>
+
+                      {product.original_price_inr && (
+                        <div className="mt-1 text-[10px] text-black/30 line-through">
+                          ₹
+                          {Number(
+                            product.original_price_inr
+                          ).toLocaleString(
+                            "en-IN"
+                          )}
+                        </div>
+                      )}
+
+                    </div>
+
+                  </div>
+
+                  {/* ADD TO CART */}
+
+                  <button
+                    onClick={() =>
+                      addToCart(
+                        product
+                      )
+                    }
+                    className="mt-6 w-full border border-black bg-transparent py-3.5 text-[9px] font-bold tracking-[0.2em] transition group-hover:bg-black group-hover:text-white"
+                  >
+                    ADD TO CART
+                  </button>
+
+                  {/* GO TO CART */}
+
+                  <button
+                    onClick={() =>
+                      setCartOpen(true)
+                    }
+                    className="mt-2 w-full py-2 text-[8px] font-bold tracking-[0.18em] text-black/35 transition hover:text-black"
+                  >
+                    GO TO CART →
+                  </button>
+
                 </div>
 
-                {/* ADD TO CART */}
+              </article>
 
-                <button
-                  onClick={() => addToCart(product)}
-                  className="mt-6 w-full border border-black bg-transparent py-3.5 text-[9px] font-bold tracking-[0.2em] transition group-hover:bg-black group-hover:text-white"
-                >
-                  ADD TO CART
-                </button>
-
-                {/* GO TO CART */}
-
-                <button
-                  onClick={() => setCartOpen(true)}
-                  className="mt-2 w-full py-2 text-[8px] font-bold tracking-[0.18em] text-black/35 transition hover:text-black"
-                >
-                  GO TO CART →
-                </button>
-
-              </div>
-
-            </article>
-
-          ))}
+            )
+          )}
 
         </div>
 
@@ -530,12 +645,16 @@ function App() {
 
         <div
           className="fixed inset-0 z-[100] bg-black/30"
-          onClick={() => setCartOpen(false)}
+          onClick={() =>
+            setCartOpen(false)
+          }
         >
 
           <aside
             className="absolute right-0 top-0 flex h-full w-full max-w-[470px] flex-col border-l border-black/10 bg-[#f5f5f2]"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) =>
+              e.stopPropagation()
+            }
           >
 
             {/* HEADER */}
@@ -555,7 +674,9 @@ function App() {
               </div>
 
               <button
-                onClick={() => setCartOpen(false)}
+                onClick={() =>
+                  setCartOpen(false)
+                }
                 className="text-2xl font-light text-black/40 transition hover:text-black"
               >
                 ×
@@ -589,80 +710,96 @@ function App() {
 
                 <div className="flex-1 overflow-y-auto">
 
-                  {cart.map((item) => (
+                  {cart.map(
+                    (item) => (
 
-                    <div
-                      key={item.product_id}
-                      className="flex gap-5 border-b border-black/10 p-6"
-                    >
+                      <div
+                        key={
+                          item.product_id
+                        }
+                        className="flex gap-5 border-b border-black/10 p-6"
+                      >
 
-                      <div className="flex h-24 w-24 shrink-0 items-center justify-center bg-white">
+                        <div className="flex h-24 w-24 shrink-0 items-center justify-center bg-white">
 
-                        <img
-                          src={item.image_url}
-                          alt={item.product_name}
-                          className="max-h-full max-w-full object-contain p-3"
-                        />
-
-                      </div>
-
-                      <div className="flex min-w-0 flex-1 flex-col">
-
-                        <h4 className="text-[13px] font-semibold leading-5">
-                          {item.product_name}
-                        </h4>
-
-                        <p className="mt-2 text-sm font-medium">
-                          ₹
-                          {Number(
-                            item.price_inr
-                          ).toLocaleString("en-IN")}
-                        </p>
-
-                        <div className="mt-auto flex items-center gap-4">
-
-                          <button
-                            onClick={() =>
-                              decreaseQuantity(
-                                item.product_id
-                              )
+                          <img
+                            src={
+                              item.image_url
                             }
-                            className="text-lg font-light text-black/50 hover:text-black"
-                          >
-                            −
-                          </button>
-
-                          <span className="text-[11px] font-semibold">
-                            {item.quantity}
-                          </span>
-
-                          <button
-                            onClick={() =>
-                              addToCart(item)
+                            alt={
+                              item.product_name
                             }
-                            className="text-lg font-light text-black/50 hover:text-black"
-                          >
-                            +
-                          </button>
+                            className="max-h-full max-w-full object-contain p-3"
+                          />
 
-                          <button
-                            onClick={() =>
-                              removeFromCart(
-                                item.product_id
-                              )
+                        </div>
+
+                        <div className="flex min-w-0 flex-1 flex-col">
+
+                          <h4 className="text-[13px] font-semibold leading-5">
+                            {
+                              item.product_name
                             }
-                            className="ml-auto text-[8px] font-bold tracking-[0.15em] text-black/30 hover:text-black"
-                          >
-                            REMOVE
-                          </button>
+                          </h4>
+
+                          <p className="mt-2 text-sm font-medium">
+                            ₹
+                            {Number(
+                              item.price_inr
+                            ).toLocaleString(
+                              "en-IN"
+                            )}
+                          </p>
+
+                          <div className="mt-auto flex items-center gap-4">
+
+                            <button
+                              onClick={() =>
+                                decreaseQuantity(
+                                  item.product_id
+                                )
+                              }
+                              className="text-lg font-light text-black/50 hover:text-black"
+                            >
+                              −
+                            </button>
+
+                            <span className="text-[11px] font-semibold">
+                              {
+                                item.quantity
+                              }
+                            </span>
+
+                            <button
+                              onClick={() =>
+                                addToCart(
+                                  item
+                                )
+                              }
+                              className="text-lg font-light text-black/50 hover:text-black"
+                            >
+                              +
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                removeFromCart(
+                                  item.product_id
+                                )
+                              }
+                              className="ml-auto text-[8px] font-bold tracking-[0.15em] text-black/30 hover:text-black"
+                            >
+                              REMOVE
+                            </button>
+
+                          </div>
 
                         </div>
 
                       </div>
 
-                    </div>
-
-                  ))}
+                    )
+                  )}
 
                 </div>
 
@@ -678,14 +815,18 @@ function App() {
 
                     <span className="text-2xl font-semibold tracking-[-0.03em]">
                       ₹
-                      {cartTotal.toLocaleString("en-IN")}
+                      {cartTotal.toLocaleString(
+                        "en-IN"
+                      )}
                     </span>
 
                   </div>
 
                   <button
                     onClick={checkout}
-                    disabled={isCheckingOut}
+                    disabled={
+                      isCheckingOut
+                    }
                     className="mt-7 w-full border border-black bg-black py-4 text-[9px] font-bold tracking-[0.2em] text-white transition hover:bg-[#222] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {isCheckingOut
@@ -748,7 +889,11 @@ function App() {
               </span>
 
               <button
-                onClick={() => setCheckoutError(false)}
+                onClick={() =>
+                  setCheckoutError(
+                    false
+                  )
+                }
                 className="text-xl font-light text-black/40 hover:text-black"
               >
                 ×
@@ -767,14 +912,20 @@ function App() {
             <div className="mt-10 grid gap-2">
 
               <button
-                onClick={() => setCheckoutError(false)}
+                onClick={() =>
+                  setCheckoutError(
+                    false
+                  )
+                }
                 className="w-full border border-black bg-black py-4 text-[9px] font-bold tracking-[0.2em] text-white transition hover:bg-[#222]"
               >
                 TRY AGAIN
               </button>
 
               <button
-                onClick={findOutWhatHappened}
+                onClick={
+                  findOutWhatHappened
+                }
                 className="w-full border border-black/15 py-4 text-[9px] font-bold tracking-[0.2em] transition hover:border-black hover:bg-white"
               >
                 FIND OUT WHAT HAPPENED →

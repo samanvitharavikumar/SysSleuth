@@ -4,6 +4,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter
 
 from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -21,11 +22,11 @@ resource = Resource.create({
     "service.name": "payment-service"
 })
 
-trace.set_tracer_provider(
-    TracerProvider(
-        resource=resource
-    )
+provider = TracerProvider(
+    resource=resource
 )
+
+trace.set_tracer_provider(provider)
 
 otlp_exporter = OTLPSpanExporter(
     endpoint="http://jaeger:4317",
@@ -36,7 +37,7 @@ span_processor = BatchSpanProcessor(
     otlp_exporter
 )
 
-trace.get_tracer_provider().add_span_processor(
+provider.add_span_processor(
     span_processor
 )
 
@@ -102,6 +103,9 @@ def process_payment(
     amount: float
 ):
 
+    # Get the current OpenTelemetry span
+    span = trace.get_current_span()
+
     logger.info(
         "payment_started",
         extra={
@@ -111,7 +115,7 @@ def process_payment(
     )
 
     # -----------------------------------
-    # PAYMENT DECLINED
+    # PAYMENT DECLINED - PRODUCT 8
     # -----------------------------------
 
     if order_id == 8:
@@ -119,6 +123,39 @@ def process_payment(
         payment_failures_total.labels(
             failure_type="payment_declined"
         ).inc()
+
+        # -----------------------------------
+        # TRACE ATTRIBUTES
+        # -----------------------------------
+
+        span.set_attribute(
+            "failure.type",
+            "payment_failure"
+        )
+
+        span.set_attribute(
+            "failure.product_id",
+            order_id
+        )
+
+        span.set_attribute(
+            "failure.quantity",
+            1
+        )
+
+        span.set_attribute(
+            "http.status_code",
+            402
+        )
+
+        span.set_attribute(
+            "payment.failure_type",
+            "payment_declined"
+        )
+
+        # -----------------------------------
+        # LOG
+        # -----------------------------------
 
         logger.error(
             "payment_declined",
@@ -128,6 +165,26 @@ def process_payment(
                 "reason": "Payment was declined by payment provider"
             }
         )
+
+        # -----------------------------------
+        # TRACE EXCEPTION
+        # -----------------------------------
+
+        span.record_exception(
+            Exception(
+                "Payment declined"
+            )
+        )
+
+        span.set_status(
+            Status(
+                StatusCode.ERROR,
+                "Payment declined"
+            )
+        )
+
+        # Make sure telemetry is exported
+        provider.force_flush()
 
         raise HTTPException(
             status_code=402,

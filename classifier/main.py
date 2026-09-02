@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import subprocess
-import json
 
 from .telemetry_collector import (
     extract_failure_traces,
+    extract_failure_traces_for_product,
 )
 
 from .failure_classifier import (
@@ -17,9 +17,9 @@ app = FastAPI(
 )
 
 
-# --------------------------------------------------
+# ============================================================
 # CORS
-# --------------------------------------------------
+# ============================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,9 +33,9 @@ app.add_middleware(
 )
 
 
-# --------------------------------------------------
+# ============================================================
 # GET RECENT LOGS
-# --------------------------------------------------
+# ============================================================
 
 def get_recent_logs(
     service_name,
@@ -89,9 +89,9 @@ def get_recent_logs(
         return []
 
 
-# --------------------------------------------------
+# ============================================================
 # DEPENDENCY CHAIN
-# --------------------------------------------------
+# ============================================================
 
 def get_dependency_chain(
     traces,
@@ -120,6 +120,7 @@ def get_dependency_chain(
             )
 
     if service_name not in services:
+
         services.append(
             service_name
         )
@@ -127,9 +128,9 @@ def get_dependency_chain(
     return services
 
 
-# --------------------------------------------------
+# ============================================================
 # ROOT CAUSE ANALYSIS
-# --------------------------------------------------
+# ============================================================
 
 def analyze_failure(
     classification,
@@ -165,15 +166,18 @@ def analyze_failure(
         "inventory-service",
     )
 
-    # --------------------------------------------------
+    # ========================================================
     # SELECT BEST TRACE
-    # --------------------------------------------------
+    # ========================================================
 
     trace = None
 
     if traces:
 
-        # First try exact failure type
+        # ----------------------------------------------------
+        # 1. EXACT FAILURE TYPE
+        # ----------------------------------------------------
+
         for item in traces:
 
             item_type = str(
@@ -190,9 +194,13 @@ def analyze_failure(
             if item_type == expected_type:
 
                 trace = item
+
                 break
 
-        # Otherwise choose service trace
+        # ----------------------------------------------------
+        # 2. SERVICE MATCH
+        # ----------------------------------------------------
+
         if trace is None:
 
             for item in traces:
@@ -203,25 +211,29 @@ def analyze_failure(
                 ):
 
                     trace = item
+
                     break
 
-        # Otherwise first trace
+        # ----------------------------------------------------
+        # 3. FIRST TRACE
+        # ----------------------------------------------------
+
         if trace is None:
 
             trace = traces[0]
 
-    # --------------------------------------------------
+    # ========================================================
     # EVIDENCE
-    # --------------------------------------------------
+    # ========================================================
 
     evidence = {
         "logs_checked": len(logs),
         "failure_traces": len(traces),
     }
 
-    # --------------------------------------------------
+    # ========================================================
     # TRACE RESPONSE
-    # --------------------------------------------------
+    # ========================================================
 
     trace_response = []
 
@@ -232,73 +244,92 @@ def analyze_failure(
                 "trace_id": item.get(
                     "trace_id"
                 ),
+
                 "span_id": item.get(
                     "span_id"
                 ),
+
                 "operation": item.get(
                     "operation"
                 ),
+
                 "failure_type": item.get(
                     "failure_type"
                 ),
+
                 "http_method": item.get(
                     "http_method"
                 ),
+
                 "product_id": item.get(
                     "product_id"
                 ),
+
                 "quantity": item.get(
                     "quantity"
                 ),
+
                 "status_code": item.get(
                     "status_code"
                 ),
+
                 "service": item.get(
                     "service"
                 ),
+
                 "start_time": item.get(
                     "start_time"
                 ),
+
                 "end_time": item.get(
                     "end_time"
                 ),
+
                 "duration_ms": item.get(
                     "duration_ms"
                 ),
             }
         )
 
-    # --------------------------------------------------
+    # ========================================================
     # DEPENDENCY CHAIN
-    # --------------------------------------------------
+    # ========================================================
 
     dependency_chain = get_dependency_chain(
         traces,
         service,
     )
 
-    # --------------------------------------------------
+    # ========================================================
     # FINAL RESPONSE
-    # --------------------------------------------------
+    # ========================================================
 
     response = {
         "service": service,
+
         "failure_type": failure_type,
+
         "root_cause": root_cause,
+
         "reason": reason,
+
         "confidence": confidence,
+
         "evidence": evidence,
+
         "logs": logs,
+
         "traces": trace_response,
+
         "dependency_chain": dependency_chain,
     }
 
     return response
 
 
-# --------------------------------------------------
+# ============================================================
 # HEALTH
-# --------------------------------------------------
+# ============================================================
 
 @app.get("/")
 def root():
@@ -309,50 +340,96 @@ def root():
     }
 
 
-# --------------------------------------------------
+# ============================================================
 # ANALYZE
-# --------------------------------------------------
+# ============================================================
 
 @app.get(
     "/analyze/{service_name}"
 )
 def analyze(
     service_name: str,
+    product_id: int | None = None,
 ):
 
     print(
         f"\nAnalyzing service: {service_name}"
     )
 
-    # --------------------------------------------------
-    # LOGS
-    # --------------------------------------------------
+    # ========================================================
+    # PRODUCT-SPECIFIC RCA
+    # ========================================================
 
-    logs = get_recent_logs(
-        service_name,
-        200,
-    )
+    if product_id is not None:
+
+        print(
+            f"Product-specific RCA requested: {product_id}"
+        )
+
+        # Search ALL services for this product.
+        traces = extract_failure_traces_for_product(
+            product_id,
+            100,
+        )
+
+        print(
+            f"Matching product failure traces: "
+            f"{len(traces)}"
+        )
+
+        # ----------------------------------------------------
+        # DETERMINE ACTUAL FAILING SERVICE
+        # ----------------------------------------------------
+
+        if traces:
+
+            actual_service = traces[0].get(
+                "service"
+            )
+
+            if actual_service:
+
+                service_name = (
+                    actual_service
+                )
+
+        # ----------------------------------------------------
+        # LOGS FROM ACTUAL SERVICE
+        # ----------------------------------------------------
+
+        logs = get_recent_logs(
+            service_name,
+            200,
+        )
+
+    # ========================================================
+    # NORMAL / FALLBACK RCA
+    # ========================================================
+
+    else:
+
+        logs = get_recent_logs(
+            service_name,
+            200,
+        )
+
+        print(
+            f"Collected logs: {len(logs)}"
+        )
+
+        traces = extract_failure_traces(
+            service_name,
+            100,
+        )
 
     print(
-        f"Collected logs: {len(logs)}"
+        f"Collected failure traces: "
+        f"{len(traces)}"
     )
 
-    # --------------------------------------------------
-    # TRACES
-    # --------------------------------------------------
-
-    traces = extract_failure_traces(
-        service_name,
-        100,
-    )
-
-    print(
-        f"Collected failure traces: {len(traces)}"
-    )
-
-    # --------------------------------------------------
+    # ========================================================
     # CLASSIFICATION
-    # --------------------------------------------------
+    # ========================================================
 
     classification = classify_failure(
         logs,
@@ -364,9 +441,9 @@ def analyze(
         classification,
     )
 
-    # --------------------------------------------------
+    # ========================================================
     # RCA
-    # --------------------------------------------------
+    # ========================================================
 
     result = analyze_failure(
         classification,

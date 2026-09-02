@@ -41,9 +41,6 @@ def normalize(value):
 # ============================================================
 
 def get_trace_failure_type(trace):
-    """
-    Safely retrieve explicit failure type from a trace.
-    """
 
     possible_keys = [
         "failure_type",
@@ -81,7 +78,6 @@ def get_trace_failure_type(trace):
                 "failure_type",
                 "failuretype",
             ]:
-
                 return value
 
     return ""
@@ -132,7 +128,6 @@ def trace_text(trace):
             value,
             (str, int, float, bool),
         ):
-
             values.append(
                 str(value)
             )
@@ -185,13 +180,14 @@ def classify_trace(trace):
     )
 
     # --------------------------------------------------
-    # EXPLICIT PAYMENT
+    # PAYMENT
     # --------------------------------------------------
 
     if failure_type in [
         "payment_failure",
         "payment",
         "payment_failed",
+        "payment_declined",
     ]:
 
         return build_result(
@@ -207,7 +203,7 @@ def classify_trace(trace):
         )
 
     # --------------------------------------------------
-    # EXPLICIT DATABASE
+    # DATABASE
     # --------------------------------------------------
 
     if failure_type in [
@@ -225,7 +221,7 @@ def classify_trace(trace):
         )
 
     # --------------------------------------------------
-    # EXPLICIT SERVICE CRASH
+    # SERVICE CRASH
     # --------------------------------------------------
 
     if failure_type in [
@@ -243,7 +239,7 @@ def classify_trace(trace):
         )
 
     # --------------------------------------------------
-    # EXPLICIT TIMEOUT
+    # TIMEOUT
     # --------------------------------------------------
 
     if failure_type in [
@@ -261,7 +257,7 @@ def classify_trace(trace):
         )
 
     # --------------------------------------------------
-    # EXPLICIT CASCADE
+    # CASCADING
     # --------------------------------------------------
 
     if failure_type in [
@@ -279,7 +275,7 @@ def classify_trace(trace):
         )
 
     # --------------------------------------------------
-    # EXPLICIT STOCK FAILURE
+    # INSUFFICIENT STOCK
     # --------------------------------------------------
 
     if failure_type in [
@@ -306,8 +302,6 @@ def classify_trace(trace):
 
     if (
         "payment_declined" in text
-        or "payment-service" in text
-        or "payment service" in text
         or "payment failed" in text
         or "payment failure" in text
         or "status_code=402" in text
@@ -330,9 +324,9 @@ def classify_trace(trace):
         "database_failure_test" in text
         or "database failure" in text
         or "database unavailable" in text
+        or "database error" in text
         or "postgres" in text
         or "sqlalchemy" in text
-        or "database error" in text
     ):
 
         return build_result(
@@ -401,7 +395,7 @@ def classify_trace(trace):
         )
 
     # --------------------------------------------------
-    # CASCADING FAILURE
+    # CASCADING EVIDENCE
     # --------------------------------------------------
 
     if (
@@ -430,7 +424,6 @@ def classify_trace(trace):
         status_code = int(
             status_code
         )
-
     except (TypeError, ValueError):
         status_code = None
 
@@ -451,6 +444,22 @@ def classify_trace(trace):
 
 
 # ============================================================
+# TRACE TIME
+# ============================================================
+
+def trace_time(trace):
+
+    value = trace.get(
+        "start_time"
+    )
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+# ============================================================
 # CLASSIFY FAILURE
 # ============================================================
 
@@ -466,25 +475,190 @@ def classify_failure(
         logs = []
 
     # ========================================================
-    # 1. CURRENT LOG MARKERS
+    # TRACE CLASSIFICATION
     # ========================================================
     #
-    # IMPORTANT:
-    # Only explicit test markers are considered here.
+    # Group traces by trace_id first.
     #
-    # We deliberately DO NOT search for generic words such as
-    # "timeout" in Docker logs because those can belong to an
-    # older test.
+    # One checkout can produce several spans:
     #
+    # frontend/API
+    #       ↓
+    # order-service
+    #       ↓
+    # inventory-service
+    #       ↓
+    # payment-service
+    #
+    # We want to reason about the checkout trace as a whole.
+    # ========================================================
+
+    if traces:
+
+        trace_groups = {}
+
+        for trace in traces:
+
+            trace_id = trace.get(
+                "trace_id"
+            )
+
+            if not trace_id:
+                continue
+
+            trace_groups.setdefault(
+                trace_id,
+                []
+            ).append(trace)
+
+        # ----------------------------------------------------
+        # Sort complete trace groups by newest span
+        # ----------------------------------------------------
+
+        groups = list(
+            trace_groups.values()
+        )
+
+        groups.sort(
+            key=lambda group: max(
+                (
+                    trace_time(item)
+                    for item in group
+                ),
+                default=0,
+            ),
+            reverse=True,
+        )
+
+        # ----------------------------------------------------
+        # Examine newest checkout trace first
+        # ----------------------------------------------------
+
+        for group in groups:
+
+            # ----------------------------------------------
+            # EXPLICIT FAILURE TYPES
+            # ----------------------------------------------
+
+            explicit = []
+
+            for trace in group:
+
+                failure_type = (
+                    get_trace_failure_type(
+                        trace
+                    )
+                )
+
+                if failure_type in [
+                    "database_failure",
+                    "payment_failure",
+                    "payment_declined",
+                    "service_crash",
+                    "timeout",
+                    "cascading_failure",
+                    "insufficient_stock",
+                ]:
+
+                    explicit.append(
+                        trace
+                    )
+
+            if explicit:
+
+                # Prefer the actual explicit failure over
+                # generic downstream service failures.
+
+                explicit.sort(
+                    key=trace_time,
+                    reverse=True,
+                )
+
+                selected = explicit[0]
+
+                result = classify_trace(
+                    selected
+                )
+
+                if result is not None:
+
+                    print(
+                        "Selected trace:",
+                        selected.get("trace_id"),
+                        "| service:",
+                        selected.get("service"),
+                        "| failure:",
+                        selected.get("failure_type"),
+                        "| product:",
+                        selected.get("product_id"),
+                    )
+
+                    return result
+
+            # ----------------------------------------------
+            # OTHER FAILURE EVIDENCE
+            # ----------------------------------------------
+
+            candidates = []
+
+            for trace in group:
+
+                result = classify_trace(
+                    trace
+                )
+
+                if result is not None:
+
+                    candidates.append(
+                        (
+                            trace,
+                            result,
+                        )
+                    )
+
+            if candidates:
+
+                candidates.sort(
+                    key=lambda pair: trace_time(
+                        pair[0]
+                    ),
+                    reverse=True,
+                )
+
+                selected_trace, result = (
+                    candidates[0]
+                )
+
+                print(
+                    "Selected trace:",
+                    selected_trace.get(
+                        "trace_id"
+                    ),
+                    "| service:",
+                    selected_trace.get(
+                        "service"
+                    ),
+                    "| failure:",
+                    selected_trace.get(
+                        "failure_type"
+                    ),
+                    "| product:",
+                    selected_trace.get(
+                        "product_id"
+                    ),
+                )
+
+                return result
+
+    # ========================================================
+    # LOG FALLBACK
     # ========================================================
 
     for log in reversed(logs):
 
         text = str(log).lower()
 
-        # --------------------------------------------------
         # PAYMENT
-        # --------------------------------------------------
 
         if (
             "payment_declined" in text
@@ -499,9 +673,7 @@ def classify_failure(
                 0.98,
             )
 
-        # --------------------------------------------------
         # DATABASE
-        # --------------------------------------------------
 
         if (
             "database_failure_test" in text
@@ -516,9 +688,7 @@ def classify_failure(
                 0.98,
             )
 
-        # --------------------------------------------------
-        # CASCADING
-        # --------------------------------------------------
+        # CASCADE
 
         if (
             "cascading_failure" in text
@@ -533,9 +703,7 @@ def classify_failure(
                 0.98,
             )
 
-        # --------------------------------------------------
-        # SERVICE CRASH
-        # --------------------------------------------------
+        # CRASH
 
         if (
             "inventory_service_crash_test" in text
@@ -550,9 +718,7 @@ def classify_failure(
                 0.98,
             )
 
-        # --------------------------------------------------
         # TIMEOUT
-        # --------------------------------------------------
 
         if (
             "inventory_service_timeout" in text
@@ -567,9 +733,7 @@ def classify_failure(
                 0.98,
             )
 
-        # --------------------------------------------------
         # STOCK
-        # --------------------------------------------------
 
         if (
             "insufficient_stock" in text

@@ -4,33 +4,80 @@ export default function RCADashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
+  // =========================================================
+  // LOAD RCA
+  // =========================================================
+
   useEffect(() => {
     async function loadRCA() {
       try {
-        const response = await fetch(
-          "http://localhost:8010/analyze/inventory-service"
-        );
+        const params =
+          new URLSearchParams(
+            window.location.search
+          );
 
-        if (!response.ok) {
-          throw new Error(`Backend returned ${response.status}`);
+        const productId =
+          params.get("product_id");
+
+        let url =
+          "http://localhost:8010/analyze/inventory-service";
+
+        if (productId) {
+          url +=
+            `?product_id=${encodeURIComponent(
+              productId
+            )}`;
         }
 
-        const result = await response.json();
-        console.log("RCA DATA:", result);
+        console.log(
+          "RCA REQUEST:",
+          url
+        );
+
+        const response =
+          await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(
+            `Backend returned ${response.status}`
+          );
+        }
+
+        const result =
+          await response.json();
+
+        console.log(
+          "RCA DATA:",
+          result
+        );
+
         setData(result);
+
       } catch (err) {
+
         console.error(err);
-        setError(err.message);
+
+        setError(
+          err.message
+        );
       }
     }
 
     loadRCA();
+
   }, []);
 
+  // =========================================================
+  // ERROR
+  // =========================================================
+
   if (error) {
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#071A2F] via-[#0B2D4D] to-[#164E63] text-white flex items-center justify-center">
+
         <div className="text-center">
+
           <p className="text-xs tracking-[0.3em] text-[#8EA7B8] font-bold">
             SYSSLEUTH
           </p>
@@ -42,15 +89,24 @@ export default function RCADashboard() {
           <p className="mt-4 text-[#8EA7B8]">
             {error}
           </p>
+
         </div>
+
       </div>
     );
   }
 
+  // =========================================================
+  // LOADING
+  // =========================================================
+
   if (!data) {
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#071A2F] via-[#0B2D4D] to-[#164E63] text-white flex items-center justify-center">
+
         <div className="text-center">
+
           <p className="text-xs tracking-[0.3em] text-[#8EA7B8] font-bold">
             SYSSLEUTH / FAILURE INVESTIGATION
           </p>
@@ -58,38 +114,105 @@ export default function RCADashboard() {
           <p className="text-lg mt-5 text-[#B8C9D4]">
             Analyzing failure...
           </p>
+
         </div>
+
       </div>
     );
   }
 
+  // =========================================================
+  // SELECT BEST TRACE
+  // =========================================================
+
   const trace = (() => {
-    if (!data.traces || data.traces.length === 0) {
+
+    if (
+      !data.traces ||
+      data.traces.length === 0
+    ) {
       return null;
     }
 
-    const matchingTrace = data.traces.find(
-      (t) =>
-        String(t.failure_type || "").toLowerCase() ===
-        String(data.failure_type || "").toLowerCase()
-    );
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    const productId =
+      params.get("product_id");
+
+    // -------------------------------------------------------
+    // 1. PRODUCT MATCH
+    // -------------------------------------------------------
+
+    if (productId) {
+
+      const productTrace =
+        data.traces.find(
+          (t) =>
+            String(
+              t.product_id
+            ) ===
+            String(productId)
+        );
+
+      if (productTrace) {
+        return productTrace;
+      }
+    }
+
+    // -------------------------------------------------------
+    // 2. FAILURE TYPE MATCH
+    // -------------------------------------------------------
+
+    const matchingTrace =
+      data.traces.find(
+        (t) =>
+          String(
+            t.failure_type || ""
+          ).toLowerCase() ===
+          String(
+            data.failure_type || ""
+          ).toLowerCase()
+      );
 
     if (matchingTrace) {
       return matchingTrace;
     }
 
-    const inventoryTrace = data.traces.find(
-      (t) => t.service === data.service
-    );
+    // -------------------------------------------------------
+    // 3. SERVICE MATCH
+    // -------------------------------------------------------
 
-    if (inventoryTrace) {
-      return inventoryTrace;
+    const serviceTrace =
+      data.traces.find(
+        (t) =>
+          t.service ===
+          data.service
+      );
+
+    if (serviceTrace) {
+      return serviceTrace;
     }
 
+    // -------------------------------------------------------
+    // 4. FIRST TRACE
+    // -------------------------------------------------------
+
     return data.traces[0];
+
   })();
 
-  const confidence = Math.round((data.confidence ?? 0) * 100);
+  const confidence =
+    Math.round(
+      (data.confidence ?? 0) *
+        100
+    );
+
+  // =========================================================
+  // UI
+  // =========================================================
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#123B5D] via-[#0B2D4D] to-[#164E63] text-white">
@@ -101,26 +224,27 @@ export default function RCADashboard() {
       <nav className="h-[82px] border-b border-white/10 px-14 flex items-center justify-between">
 
         <div>
+
           <h1 className="text-2xl font-black tracking-[0.22em]">
-           SYSSLEUTH / FAILURE INVESTIGATION
+            SYSSLEUTH / FAILURE INVESTIGATION
           </h1>
 
           <p className="text-[9px] tracking-[0.28em] text-[#71899A] mt-1">
             SYSTEM INTELLIGENCE RCA DASHBOARD
           </p>
+
         </div>
 
-       
-
         <button
-          onClick={() => (window.location.href = "/")}
+          onClick={() =>
+            (window.location.href = "/")
+          }
           className="border border-[#6E8799]/50 px-7 py-4 text-[10px] tracking-[0.16em] font-bold hover:bg-white hover:text-[#071A2F] transition"
         >
           BACK TO STORE
         </button>
 
       </nav>
-
 
       {/* =====================================================
           CONTENT
@@ -139,7 +263,6 @@ export default function RCADashboard() {
             <div className="w-11 h-[1px] bg-white/70" />
 
             <p className="text-[10px] tracking-[0.35em] text-[#8198A9] font-bold">
-            
             </p>
 
           </div>
@@ -162,7 +285,6 @@ export default function RCADashboard() {
 
         </section>
 
-
         {/* ===================================================
             FAILURE / ROOT CAUSE
         =================================================== */}
@@ -180,7 +302,6 @@ export default function RCADashboard() {
             </h2>
 
           </div>
-
 
           <div className="py-14 md:pl-14">
 
@@ -200,7 +321,6 @@ export default function RCADashboard() {
 
         </section>
 
-
         {/* ===================================================
             SUMMARY
         =================================================== */}
@@ -219,11 +339,13 @@ export default function RCADashboard() {
 
           <InfoCard
             title="STATUS CODE"
-            value={trace?.status_code ?? "N/A"}
+            value={
+              trace?.status_code ??
+              "N/A"
+            }
           />
 
         </section>
-
 
         {/* ===================================================
             FAILURE TRACE
@@ -243,64 +365,84 @@ export default function RCADashboard() {
 
           </div>
 
-
           {trace ? (
+
             <div className="grid grid-cols-1 md:grid-cols-3 border-t border-l border-white/10">
 
               <TraceItem
                 title="TRACE ID"
-                value={trace?.trace_id}
+                value={
+                  trace?.trace_id
+                }
               />
 
               <TraceItem
                 title="SPAN ID"
-                value={trace?.span_id}
+                value={
+                  trace?.span_id
+                }
               />
 
               <TraceItem
                 title="OPERATION"
-                value={trace?.operation}
+                value={
+                  trace?.operation
+                }
               />
 
               <TraceItem
                 title="SERVICE"
-                value={trace?.service}
+                value={
+                  trace?.service
+                }
               />
 
               <TraceItem
                 title="FAILURE TYPE"
-                value={trace?.failure_type}
+                value={
+                  trace?.failure_type
+                }
               />
 
               <TraceItem
                 title="HTTP METHOD"
-                value={trace?.http_method}
+                value={
+                  trace?.http_method
+                }
               />
 
               <TraceItem
                 title="STATUS CODE"
-                value={trace?.status_code}
+                value={
+                  trace?.status_code
+                }
               />
 
               <TraceItem
                 title="PRODUCT ID"
-                value={trace?.product_id}
+                value={
+                  trace?.product_id
+                }
               />
 
               <TraceItem
                 title="QUANTITY"
-                value={trace?.quantity}
+                value={
+                  trace?.quantity
+                }
               />
 
             </div>
+
           ) : (
+
             <p className="text-[#718A9D]">
               No failure trace found.
             </p>
+
           )}
 
         </section>
-
 
         {/* ===================================================
             TRACE TIMELINE
@@ -320,8 +462,8 @@ export default function RCADashboard() {
 
           </div>
 
-
           {trace ? (
+
             <>
 
               <div className="relative border-l border-white/15 ml-3">
@@ -331,7 +473,8 @@ export default function RCADashboard() {
                   value={
                     trace?.start_time
                       ? new Date(
-                          trace.start_time / 1000
+                          trace.start_time /
+                            1000
                         ).toLocaleString()
                       : "N/A"
                   }
@@ -339,7 +482,9 @@ export default function RCADashboard() {
 
                 <TimelineItem
                   title="FAILURE DETECTED"
-                  value={trace.failure_type}
+                  value={
+                    trace.failure_type
+                  }
                 />
 
                 <TimelineItem
@@ -347,14 +492,14 @@ export default function RCADashboard() {
                   value={
                     trace?.end_time
                       ? new Date(
-                          trace.end_time / 1000
+                          trace.end_time /
+                            1000
                         ).toLocaleString()
                       : "N/A"
                   }
                 />
 
               </div>
-
 
               <div className="mt-12 border-t border-b border-white/10 py-7 flex justify-between items-center">
 
@@ -363,7 +508,8 @@ export default function RCADashboard() {
                 </span>
 
                 <span className="text-2xl md:text-3xl font-black text-[#DCE6EC]">
-                  {trace.duration_ms != null
+                  {trace.duration_ms !=
+                  null
                     ? `${trace.duration_ms} ms`
                     : "N/A"}
                 </span>
@@ -371,14 +517,16 @@ export default function RCADashboard() {
               </div>
 
             </>
+
           ) : (
+
             <p className="text-[#718A9D]">
               No trace timeline available.
             </p>
+
           )}
 
         </section>
-
 
         {/* ===================================================
             EVIDENCE
@@ -398,17 +546,24 @@ export default function RCADashboard() {
 
           </div>
 
-
           <div className="grid grid-cols-1 md:grid-cols-2 border-t border-l border-white/10">
 
             <InfoCard
               title="LOGS ANALYZED"
-              value={data.evidence?.logs_checked ?? 0}
+              value={
+                data.evidence
+                  ?.logs_checked ??
+                0
+              }
             />
 
             <InfoCard
               title="FAILURE TRACES"
-              value={data.evidence?.failure_traces ?? 0}
+              value={
+                data.evidence
+                  ?.failure_traces ??
+                0
+              }
             />
 
           </div>
@@ -416,16 +571,20 @@ export default function RCADashboard() {
         </section>
 
       </main>
+
     </div>
   );
 }
 
 
-/* =========================================================
-   INFO CARD
-========================================================= */
+// ============================================================
+// INFO CARD
+// ============================================================
 
-function InfoCard({ title, value }) {
+function InfoCard({
+  title,
+  value,
+}) {
   return (
     <div className="p-8 border-r border-b border-white/10 min-h-[145px] flex flex-col justify-between">
 
@@ -442,11 +601,14 @@ function InfoCard({ title, value }) {
 }
 
 
-/* =========================================================
-   TRACE ITEM
-========================================================= */
+// ============================================================
+// TRACE ITEM
+// ============================================================
 
-function TraceItem({ title, value }) {
+function TraceItem({
+  title,
+  value,
+}) {
   return (
     <div className="p-7 border-r border-b border-white/10 min-h-[125px]">
 
@@ -463,11 +625,14 @@ function TraceItem({ title, value }) {
 }
 
 
-/* =========================================================
-   TIMELINE ITEM
-========================================================= */
+// ============================================================
+// TIMELINE ITEM
+// ============================================================
 
-function TimelineItem({ title, value }) {
+function TimelineItem({
+  title,
+  value,
+}) {
   return (
     <div className="relative pl-10 pb-10 last:pb-0">
 
