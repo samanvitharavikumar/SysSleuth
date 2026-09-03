@@ -8,64 +8,78 @@ export default function RCADashboard() {
   // LOAD RCA
   // =========================================================
 
-  useEffect(() => {
-    async function loadRCA() {
-      try {
-        const params =
-          new URLSearchParams(
-            window.location.search
-          );
+ useEffect(() => {
+  let cancelled = false;
 
-        const productId =
-          params.get("product_id");
+  async function loadRCA() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const productId = params.get("product_id");
 
-        let url =
-          "http://localhost:8010/analyze/inventory-service";
+      let url =
+        "http://localhost:8010/analyze/inventory-service";
 
-        if (productId) {
-          url +=
-            `?product_id=${encodeURIComponent(
-              productId
-            )}`;
-        }
+      if (productId) {
+        url += `?product_id=${encodeURIComponent(productId)}`;
+      }
 
-        console.log(
-          "RCA REQUEST:",
-          url
-        );
+      console.log("RCA REQUEST:", url);
 
-        const response =
-          await fetch(url);
+      const response = await fetch(url);
 
-        if (!response.ok) {
-          throw new Error(
-            `Backend returned ${response.status}`
-          );
-        }
-
-        const result =
-          await response.json();
-
-        console.log(
-          "RCA DATA:",
-          result
-        );
-
-        setData(result);
-
-      } catch (err) {
-
-        console.error(err);
-
-        setError(
-          err.message
+      if (!response.ok) {
+        throw new Error(
+          `Backend returned ${response.status}`
         );
       }
+
+      const result = await response.json();
+
+      console.log("RCA DATA:", result);
+
+      if (cancelled) return;
+
+      // -------------------------------------------------------
+      // If RCA says UNKNOWN, the telemetry may not have arrived
+      // in Jaeger yet. Retry after a short delay.
+      // -------------------------------------------------------
+
+      if (
+        productId &&
+        String(result.failure_type || "").toUpperCase() === "UNKNOWN"
+      ) {
+        console.log(
+          "RCA UNKNOWN - waiting for telemetry and retrying..."
+        );
+
+        setTimeout(() => {
+          if (!cancelled) {
+            loadRCA();
+          }
+        }, 2000);
+
+        return;
+      }
+
+      // We got a proper RCA result
+      setData(result);
+
+    } catch (err) {
+      if (cancelled) return;
+
+      console.error(err);
+
+      setError(err.message);
     }
+  }
 
-    loadRCA();
+  loadRCA();
 
-  }, []);
+  return () => {
+    cancelled = true;
+  };
+
+}, []);
 
   // =========================================================
   // ERROR

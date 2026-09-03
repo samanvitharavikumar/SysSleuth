@@ -734,8 +734,13 @@ def extract_failure_traces_for_product(
     limit=100,
 ):
     """
-    Search failure traces across all SysSleuth services
-    and return only traces belonging to the requested product.
+    Search failure traces across all SysSleuth services and return
+    failure spans belonging to the checkout for the requested product.
+
+    The product ID may exist on a parent/downstream span while the actual
+    failure is recorded on another span in the same distributed trace.
+    This is especially important for service crashes, where the crashing
+    span may not be returned with the product tag after the process exits.
     """
 
     all_traces = get_recent_traces_all_services(
@@ -755,11 +760,13 @@ def extract_failure_traces_for_product(
             [],
         )
 
-        for span in spans:
+        # ------------------------------------------------
+        # FIND THE DISTRIBUTED TRACE FOR THIS PRODUCT
+        # ------------------------------------------------
 
-            # ------------------------------------------------
-            # PRODUCT ID
-            # ------------------------------------------------
+        trace_has_product = False
+
+        for span in spans:
 
             product_value = get_first_tag(
                 span,
@@ -772,11 +779,18 @@ def extract_failure_traces_for_product(
                 ],
             )
 
-            if product_value is None:
-                continue
+            if product_value is not None and str(product_value) == target_product_id:
+                trace_has_product = True
+                break
 
-            if str(product_value) != target_product_id:
-                continue
+        if not trace_has_product:
+            continue
+
+        # ------------------------------------------------
+        # NOW EXTRACT FAILURE SPANS FROM THAT TRACE
+        # ------------------------------------------------
+
+        for span in spans:
 
             # ------------------------------------------------
             # EXPLICIT FAILURE TYPE
@@ -957,7 +971,7 @@ def extract_failure_traces_for_product(
                 continue
 
             # ------------------------------------------------
-            # BUILD TRACE
+            # BUILD RESULT
             # ------------------------------------------------
 
             failure_trace = build_failure_trace(

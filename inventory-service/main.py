@@ -359,51 +359,50 @@ def reserve_inventory(product_id: int, quantity: int):
             }
         )
 
-        # -----------------------------
-        # TRACE ATTRIBUTES
-        # -----------------------------
-        span.set_attribute(
-            "failure.type",
-            "service_crash"
-        )
+        # Create a separate span that can be COMPLETED
+        # before the process is intentionally terminated.
+        tracer = trace.get_tracer("inventory-service")
 
-        span.set_attribute(
-            "failure.product_id",
-            product_id
-        )
+        with tracer.start_as_current_span("intentional_service_crash") as crash_span:
 
-        span.set_attribute(
-            "failure.quantity",
-            quantity
-        )
-
-        # -----------------------------
-        # EXCEPTION
-        # -----------------------------
-        span.record_exception(
-            Exception(
-                "Intentional service crash for SysSleuth testing"
+            crash_span.set_attribute(
+                "failure.type",
+                "service_crash"
             )
-        )
 
-        # -----------------------------
-        # SPAN STATUS
-        # -----------------------------
-        span.set_status(
-            Status(
-                StatusCode.ERROR,
-                "Inventory service crashed"
+            crash_span.set_attribute(
+                "failure.product_id",
+                product_id
             )
-        )
 
-        # -----------------------------
-        # FLUSH TELEMETRY
-        # -----------------------------
+            crash_span.set_attribute(
+                "failure.quantity",
+                quantity
+            )
+
+            crash_span.set_attribute(
+                "http.status_code",
+                500
+            )
+
+            crash_span.record_exception(
+                Exception(
+                    "Intentional service crash for SysSleuth testing"
+                )
+            )
+
+            crash_span.set_status(
+                Status(
+                    StatusCode.ERROR,
+                    "Inventory service crashed"
+                )
+            )
+
+        # The with-block has ended the crash span.
+        # Now force it through the exporter.
         provider.force_flush()
 
-        # -----------------------------
-        # ACTUAL CRASH
-        # -----------------------------
+        # Actually terminate the inventory process.
         os._exit(1)
 
         # -----------------------------------
@@ -480,7 +479,7 @@ def reserve_inventory(product_id: int, quantity: int):
         # -----------------------------
         span.set_attribute(
             "failure.type",
-            "service_failure"
+            "cascading_failure"
         )
 
         span.set_attribute(
