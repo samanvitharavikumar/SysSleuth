@@ -2,12 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import subprocess
 
-from .telemetry_collector import (
+from telemetry_collector import (
     extract_failure_traces,
     extract_failure_traces_for_product,
 )
 
-from .failure_classifier import (
+from failure_classifier import (
     classify_failure,
 )
 
