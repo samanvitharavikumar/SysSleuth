@@ -238,22 +238,24 @@ function App() {
   // RCA
   // --------------------------------------------------
 
-  const findOutWhatHappened = () => {
-    const productId =
-      sessionStorage.getItem(
-        "rca_product_id"
-      );
+ const findOutWhatHappened = () => {
+  const productId =
+    sessionStorage.getItem(
+      "rca_product_id"
+    );
 
-    if (productId) {
-      window.location.href =
-        `/rca?product_id=${encodeURIComponent(
-          productId
-        )}`;
-    } else {
-      window.location.href =
-        "/rca";
-    }
-  };
+  if (!productId) {
+    alert(
+      "No product ID was found for this incident."
+    );
+    return;
+  }
+
+  window.location.href =
+    `/rca?product_id=${encodeURIComponent(
+      productId
+    )}`;
+};
 
   // --------------------------------------------------
   // UI
