@@ -77,6 +77,7 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-[#dbe9f2] via-[#7895ad] to-[#173f72] text-slate-900">
 
       {/* NAVBAR */}
+
       <nav className="h-[90px] border-b border-slate-900/20 flex items-center justify-between px-10 md:px-16">
 
         <div className="text-2xl md:text-3xl font-bold tracking-[0.25em]">
@@ -89,29 +90,38 @@ export default function Login() {
 
       </nav>
 
+
       {/* MAIN */}
+
       <main className="min-h-[calc(100vh-90px)] relative overflow-hidden">
 
         {/* Decorative line */}
+
         <div className="absolute top-24 left-10 md:left-16 w-12 h-px bg-slate-900/70" />
 
         <div className="absolute top-28 left-10 md:left-16 text-[10px] tracking-[0.4em] text-slate-800/70">
           2026
         </div>
 
+
         {/* Background geometric shapes */}
+
         <div className="absolute right-[-100px] top-24 w-[520px] h-[520px] border border-white/10" />
 
         <div className="absolute right-[40px] top-44 w-[380px] h-[380px] border border-white/10" />
 
         <div className="absolute right-[150px] top-64 w-[220px] h-[220px] border border-white/10" />
 
+
         {/* CONTENT */}
+
         <div className="relative z-10 min-h-[calc(100vh-90px)] flex items-center justify-center px-6">
 
           <div className="w-full max-w-6xl grid md:grid-cols-2 gap-16 items-center">
 
+
             {/* LEFT SIDE */}
+
             <div>
 
               <p className="text-sm tracking-[0.4em] uppercase mb-8 text-slate-800">
@@ -119,11 +129,15 @@ export default function Login() {
               </p>
 
               <h1 className="text-6xl md:text-8xl font-black tracking-tight leading-none">
+
                 Smarter
+
                 <br />
+
                 <span className="text-white/80">
                   commerce.
                 </span>
+
               </h1>
 
               <p className="mt-10 max-w-md text-sm leading-7 text-slate-800/80">
@@ -133,16 +147,17 @@ export default function Login() {
 
             </div>
 
+
             {/* RIGHT SIDE */}
+
             <div className="flex justify-center md:justify-end">
 
               <div className="w-full max-w-md">
 
                 <div className="bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl p-8 md:p-10">
 
-                  {/* =================================================
-                      STEP 1 — CHOOSE ROLE
-                  ================================================= */}
+
+                  {/* STEP 1 — CHOOSE ROLE */}
 
                   {!role && (
                     <>
@@ -158,6 +173,7 @@ export default function Login() {
                       <p className="mt-3 text-sm text-slate-500 mb-10">
                         Select how you want to access Kickstart.
                       </p>
+
 
                       {/* USER */}
 
@@ -191,6 +207,7 @@ export default function Login() {
                         </div>
 
                       </button>
+
 
                       {/* ADMIN */}
 
@@ -228,9 +245,8 @@ export default function Login() {
                     </>
                   )}
 
-                  {/* =================================================
-                      STEP 2 — LOGIN
-                  ================================================= */}
+
+                  {/* STEP 2 — LOGIN */}
 
                   {role && (
                     <>
@@ -243,6 +259,7 @@ export default function Login() {
                       >
                         ← Back
                       </button>
+
 
                       {/* HEADING */}
 
@@ -257,11 +274,15 @@ export default function Login() {
                       </h2>
 
                       <p className="mt-3 text-sm text-slate-500 mb-10">
+
                         Sign in as{" "}
+
                         <span className="font-semibold text-slate-800">
                           {role.toUpperCase()}
                         </span>
+
                       </p>
+
 
                       {/* LOGIN FORM */}
 
@@ -269,6 +290,7 @@ export default function Login() {
                         onSubmit={handleLogin}
                         className="space-y-7"
                       >
+
 
                         {/* USERNAME */}
 
@@ -291,6 +313,7 @@ export default function Login() {
 
                         </div>
 
+
                         {/* PASSWORD */}
 
                         <div>
@@ -312,6 +335,7 @@ export default function Login() {
 
                         </div>
 
+
                         {/* ERROR */}
 
                         {error && (
@@ -319,6 +343,7 @@ export default function Login() {
                             {error}
                           </div>
                         )}
+
 
                         {/* SIGN IN */}
 
@@ -331,6 +356,7 @@ export default function Login() {
 
                       </form>
 
+
                       {/* DEMO CREDENTIALS */}
 
                       <div className="mt-8 pt-6 border-t border-slate-200">
@@ -342,7 +368,9 @@ export default function Login() {
                         {role === "user" ? (
 
                           <p className="text-xs text-slate-500">
+
                             Username:{" "}
+
                             <span className="text-slate-800 font-medium">
                               user
                             </span>
@@ -350,15 +378,19 @@ export default function Login() {
                             {" "} / {" "}
 
                             Password:{" "}
+
                             <span className="text-slate-800 font-medium">
                               user123
                             </span>
+
                           </p>
 
                         ) : (
 
                           <p className="text-xs text-slate-500">
+
                             Username:{" "}
+
                             <span className="text-slate-800 font-medium">
                               admin
                             </span>
@@ -366,9 +398,11 @@ export default function Login() {
                             {" "} / {" "}
 
                             Password:{" "}
+
                             <span className="text-slate-800 font-medium">
                               admin123
                             </span>
+
                           </p>
 
                         )}
@@ -377,6 +411,7 @@ export default function Login() {
 
                     </>
                   )}
+
 
                   {/* FOOTER */}
 

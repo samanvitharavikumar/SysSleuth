@@ -14,23 +14,23 @@ let page;
 
 if (path === "/" || path === "/login") {
   page = <Login />;
-} 
+}
 else if (path === "/user") {
   page = <App />;
-} 
+}
 else if (path === "/rca") {
-  // USER RCA DASHBOARD
   page = <UserRCADashboard />;
-} 
+}
 else if (path === "/admin") {
-  // EXISTING ADMIN RCA DASHBOARD — DO NOT CHANGE
   page = <RCADashboard />;
-} 
+}
 else {
   page = <Login />;
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(
+  document.getElementById("root")
+).render(
   <React.StrictMode>
     {page}
   </React.StrictMode>
