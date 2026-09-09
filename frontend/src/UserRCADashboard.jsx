@@ -56,7 +56,32 @@ export default function UserRCADashboard() {
       traceId &&
       String(traceId).trim()
     );
+    // ============================================================
+// SAVE INCIDENT DATA FOR COMPLAINT PAGE
+// ============================================================
 
+useEffect(() => {
+  if (trace?.trace_id) {
+    sessionStorage.setItem(
+      "rca_trace_id",
+      trace.trace_id
+    );
+  }
+
+  if (trace?.span_id) {
+    sessionStorage.setItem(
+      "rca_span_id",
+      trace.span_id
+    );
+  }
+
+  if (productId) {
+    sessionStorage.setItem(
+      "rca_product_id",
+      productId
+    );
+  }
+}, [trace, productId]);
 
   // ============================================================
   // LOAD RCA DATA
@@ -842,6 +867,51 @@ Be calm, clear and reassuring.
         </section>
 
 
+
+        {/* ==================================================
+            RAISE COMPLAINT
+        ================================================== */}
+
+        <section className="py-16 border-t border-white/10">
+
+          <div className="border border-white/10 bg-white/[0.03] p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+
+            <div>
+
+              <p className="text-[10px] tracking-[0.3em] text-[#718A9D] font-bold">
+                NEED HELP?
+              </p>
+
+              <h2 className="text-3xl md:text-4xl font-black mt-4">
+                Raise a Complaint
+              </h2>
+
+              <p className="text-[#7890A1] mt-3 max-w-xl">
+                Report this checkout issue and provide more information
+                about what happened.
+              </p>
+
+            </div>
+
+            <button
+              onClick={() => {
+                if (!hasTraceId) {
+                  alert("The incident Trace ID is not available yet.");
+                  return;
+                }
+
+                window.location.href = "/complaint";
+              }}
+              disabled={!hasTraceId}
+              className="border border-white/30 px-8 py-4 text-[10px] tracking-[0.16em] font-bold hover:bg-white hover:text-[#071A2F] transition disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              RAISE A COMPLAINT
+            </button>
+
+          </div>
+
+        </section>
+
       </main>
 
     </div>
@@ -855,27 +925,20 @@ Be calm, clear and reassuring.
 // ============================================================
 
 function InfoCard({ title, value }) {
-
   return (
-
     <div className="p-10 border-r border-b border-white/10 min-h-[190px] flex flex-col justify-between">
-
 
       <p className="text-[10px] tracking-[0.28em] text-[#718A9D] font-bold">
         {title}
       </p>
 
-
       <p className="text-2xl md:text-3xl font-black mt-8 break-all">
         {value ?? "N/A"}
       </p>
 
-
     </div>
-
   );
 }
-
 
 
 // ============================================================
@@ -883,23 +946,17 @@ function InfoCard({ title, value }) {
 // ============================================================
 
 function TraceItem({ title, value }) {
-
   return (
-
     <div className="p-8 md:p-10 border-r border-b border-white/10 min-h-[145px]">
-
 
       <p className="text-[10px] tracking-[0.25em] text-[#718A9D] font-bold mb-5">
         {title}
       </p>
 
-
       <p className="font-semibold text-[#D9E4E9] break-all">
         {value ?? "N/A"}
       </p>
 
-
     </div>
-
   );
 }
