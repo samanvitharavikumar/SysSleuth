@@ -325,7 +325,7 @@ Be calm, clear and reassuring.
 
 
         const response = await fetch(
-          "http://localhost:11434/api/generate",
+          "http://localhost:8005/ask",
           {
             method: "POST",
 
@@ -334,9 +334,8 @@ Be calm, clear and reassuring.
             },
 
             body: JSON.stringify({
-              model: "gemma3",
-              prompt: prompt,
-              stream: false,
+              message: prompt,
+              trace_id: traceId,
             }),
           }
         );
@@ -344,7 +343,7 @@ Be calm, clear and reassuring.
 
         if (!response.ok) {
           throw new Error(
-            `Ollama returned ${response.status}`
+            `AI service returned ${response.status}`
           );
         }
 
@@ -364,15 +363,15 @@ Be calm, clear and reassuring.
         }
 
 
-        if (!result.response) {
+        if (!result.answer) {
           throw new Error(
-            "Ollama returned an empty response."
+            "AI service returned an empty response."
           );
         }
 
 
         setAiExplanation(
-          result.response.trim()
+          result.answer.trim()
         );
 
 

@@ -162,4 +162,3 @@ ALTER TABLE ONLY public.products
 --
 
 \unrestrict fscuEJCpgykDg1o6fuzFWGws8CNwTMtaTgg1ojccQI4KHN3BOknGzYXgub63hmQ
-
