@@ -1,20 +1,8 @@
 from typing import TypedDict
-import os
+
 import requests
 
-from dotenv import load_dotenv
-from google import genai
 from langgraph.graph import StateGraph, START, END
-
-
-# Load environment variables
-load_dotenv()
-
-
-# Gemini client
-client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
 
 
 # --------------------------------------------------
@@ -34,7 +22,9 @@ class RCAState(TypedDict):
 # --------------------------------------------------
 
 def get_tag(tags, key):
+
     for tag in tags:
+
         if tag.get("key") == key:
             return tag.get("value")
 
@@ -216,6 +206,7 @@ def parse_trace(trace_data):
 
 
         # Detect errors
+
         if (
             error_tag is True
             or error_tag == "true"
@@ -256,7 +247,6 @@ def parse_trace(trace_data):
     # --------------------------------------------------
 
     evidence = []
-
 
     evidence.append(
         "TRACE SUMMARY"
@@ -382,15 +372,12 @@ def parse_trace(trace_data):
 
 
 # --------------------------------------------------
-# STEP 3: USER-FRIENDLY GEMINI ANALYSIS
+# STEP 3: USER-FRIENDLY GEMMA 3 ANALYSIS
 # --------------------------------------------------
 
 def analyze_evidence(state: RCAState):
 
-    print(
-        "Analyzing evidence with Gemini..."
-    )
-
+    print("Analyzing evidence with Gemma 3...")
 
     prompt = f"""
 You are SysSleuth's customer support assistant.
@@ -398,15 +385,19 @@ You are SysSleuth's customer support assistant.
 A customer experienced a checkout problem.
 
 Customer message:
+
 {state['message']}
 
 Trace ID:
+
 {state['trace_id']}
 
 System evidence:
--------------------------
+----------------
+
 {state['evidence']}
--------------------------
+
+----------------
 
 Your job is to explain the incident to the customer.
 
@@ -448,14 +439,28 @@ The goal is to answer:
 """
 
 
-    response = client.models.generate_content(
-        model="gemini-3.5-flash",
-        contents=prompt
+    # --------------------------------------------------
+    # SEND PROMPT TO LOCAL OLLAMA
+    # --------------------------------------------------
+
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+
+        json={
+            "model": "gemma3",
+            "prompt": prompt,
+            "stream": False
+        },
+
+        timeout=120
     )
 
+    response.raise_for_status()
+
+    data = response.json()
 
     return {
-        "analysis": response.text
+        "analysis": data["response"]
     }
 
 
@@ -486,10 +491,12 @@ graph.add_node(
     get_trace
 )
 
+
 graph.add_node(
     "analyze_evidence",
     analyze_evidence
 )
+
 
 graph.add_node(
     "generate_answer",
@@ -497,21 +504,27 @@ graph.add_node(
 )
 
 
-# Workflow
+# --------------------------------------------------
+# WORKFLOW
+# --------------------------------------------------
+
 graph.add_edge(
     START,
     "get_trace"
 )
+
 
 graph.add_edge(
     "get_trace",
     "analyze_evidence"
 )
 
+
 graph.add_edge(
     "analyze_evidence",
     "generate_answer"
 )
+
 
 graph.add_edge(
     "generate_answer",
@@ -519,5 +532,8 @@ graph.add_edge(
 )
 
 
-# Compile
+# --------------------------------------------------
+# COMPILE
+# --------------------------------------------------
+
 rca_graph = graph.compile()

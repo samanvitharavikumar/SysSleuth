@@ -370,9 +370,12 @@ Be calm, clear and reassuring.
         }
 
 
-        setAiExplanation(
-          result.answer.trim()
-        );
+        const cleanAnswer = result.answer
+          .replace(/^#{1,6}\s*/gm, "")
+          .replace(/\*\*(.*?)\*\*/g, "$1")
+          .trim();
+
+setAiExplanation(cleanAnswer);
 
 
       } catch (err) {

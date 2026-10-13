@@ -262,7 +262,7 @@ function App() {
   // --------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#DCEAF4] via-[#123B70] to-[#0B1F3A] text-[#111111]">
+    <div className="min-h-screen bg-gradient-to-br from-[#6B21A8] via-[#000000] to-[#2E1065] text-white">
 
       {/* ==================================================
           BACKGROUND GRAPHIC
@@ -302,7 +302,7 @@ function App() {
           >
             <div>
               <div className="text-[20px] font-bold tracking-[0.18em]">
-                KICKSTART
+                
               </div>
             </div>
           </a>
@@ -315,12 +315,12 @@ function App() {
               href="#home"
               className="text-[19px] font-medium tracking-[0.16em] text-black/55 transition hover:text-black"
             >
-              HOME
+              
             </a>
 
             <a
               href="#products"
-              className="text-[19px] font-medium tracking-[0.16em] text-black/55 transition hover:text-black"
+              className="text-[19px] font-medium tracking-[0.16em] text-slate /70 transition hover:text-black"
             >
               PRODUCTS
             </a>
@@ -362,18 +362,16 @@ function App() {
 
           <div className="py-24 lg:py-32">
 
-            <div className="mb-8 flex items-center gap-3">
-              <span className="h-[1px] w-10 bg-black" />
-            </div>
+          
 
-            <h1 className="max-w-4xl text-[62px] font-semibold leading-[0.92] tracking-[-0.065em] sm:text-[82px] lg:text-[108px]">
+            <h1 className="max-w-4xl text-[62px] font-semibold leading-[0.92] tracking-[-0.065em] sm:text-[82px] lg:text-[108px] text-[#2E1065]">
 
-              Luxury
+              SysSleuth
 
               <br />
 
-              <span className="text-black/30">
-                with comfort.
+              <span className="text-black/60">
+                e-commerce.
               </span>
 
             </h1>
@@ -419,7 +417,7 @@ function App() {
               <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 bg-black" />
 
               <div className="absolute bottom-5 left-5 text-[8px] font-medium tracking-[0.25em] text-black/30">
-                SS / 01
+                
               </div>
 
               <div className="absolute right-5 top-5 text-[8px] font-medium tracking-[0.25em] text-black/30">
@@ -499,7 +497,7 @@ function App() {
                 {/* DISCOUNT */}
 
                 {product.discount && (
-                  <div className="absolute right-5 top-5 z-10 text-[8px] font-bold tracking-[0.16em]">
+                  <div className="text-black absolute right-5 top-5 z-10 text-[8px] font-bold tracking-[0.16em]">
                     {product.discount}
                   </div>
                 )}
@@ -547,26 +545,26 @@ function App() {
 
                 <div className="border-t border-black/[0.08] p-6">
 
-                  <div className="mb-3 text-[8px] font-bold uppercase tracking-[0.22em] text-black/35">
+                  <div className="text-black mb-3 text-[8px] font-bold uppercase tracking-[0.22em] text-black/35">
                     {product.category}
                   </div>
 
-                  <h3 className="min-h-[48px] text-[15px] font-semibold leading-6 tracking-[-0.015em]">
+                  <h3 className="text-[#2E1065] min-h-[48px] text-[15px] font-semibold leading-6 tracking-[-0.015em]">
                     {product.product_name}
                   </h3>
 
                   {/* RATING */}
 
-                  <div className="mt-4 flex items-center gap-2 text-[10px]">
+                  <div className="text-[#2E1065] mt-4 flex items-center gap-2 text-[10px]">
 
                     <span>★</span>
 
-                    <span className="font-medium">
+                    <span className="text-[#2E1065] font-medium">
                       {product.rating ||
                         "N/A"}
                     </span>
 
-                    <span className="text-black/30">
+                    <span className="text-[#2E1065] text-black/30">
                       {product.rating_count
                         ? `(${product.rating_count})`
                         : ""}
@@ -576,7 +574,7 @@ function App() {
 
                   {/* PRICE */}
 
-                  <div className="mt-6 flex items-end justify-between">
+                  <div className="text-[#2E1065] mt-6 flex items-end justify-between">
 
                     <div>
 
@@ -612,7 +610,7 @@ function App() {
                         product
                       )
                     }
-                    className="mt-6 w-full border border-black bg-transparent py-3.5 text-[9px] font-bold tracking-[0.2em] transition group-hover:bg-black group-hover:text-white"
+                    className="text-[#6B21A8] mt-6 w-full border border-black bg-transparent py-3.5 text-[9px] font-bold tracking-[0.2em] transition group-hover:bg-black group-hover:text-white"
                   >
                     ADD TO CART
                   </button>
@@ -661,12 +659,11 @@ function App() {
 
             {/* HEADER */}
 
-            <div className="flex items-center justify-between border-b border-black/10 px-7 py-7">
+            <div className="bg-gradient-to-br from-[#6B21A8] via-[#2E1065] to-[#000000] flex items-center justify-between border-b border-black/10 px-7 py-7">
 
               <div>
 
                 <p className="mb-2 text-[8px] font-bold tracking-[0.25em] text-black/35">
-                  YOUR SELECTION
                 </p>
 
                 <h2 className="text-2xl font-semibold tracking-[-0.04em]">
@@ -690,7 +687,7 @@ function App() {
 
             {cart.length === 0 ? (
 
-              <div className="flex flex-1 items-center justify-center">
+              <div className="bg-gradient-to-br from-[#6B21A8] via-[#2E1065] to-[#000000] flex flex-1 items-center justify-center">
 
                 <div className="text-center">
 
@@ -698,7 +695,7 @@ function App() {
                     0
                   </div>
 
-                  <p className="mt-4 text-[10px] font-bold tracking-[0.2em] text-black/40">
+                  <p className="mt-4 text-[10px] font-bold tracking-[0.2em] text-white/40">
                     YOUR CART IS EMPTY
                   </p>
 
@@ -710,7 +707,7 @@ function App() {
 
               <>
 
-                <div className="flex-1 overflow-y-auto">
+                <div className="bg-purple/10 flex-1 overflow-y-auto">
 
                   {cart.map(
                     (item) => (
@@ -736,15 +733,15 @@ function App() {
 
                         </div>
 
-                        <div className="flex min-w-0 flex-1 flex-col">
+                        <div className="b flex min-w-0 flex-1 flex-col">
 
-                          <h4 className="text-[13px] font-semibold leading-5">
+                          <h4 className="text-black text-[13px] font-semibold leading-5">
                             {
                               item.product_name
                             }
                           </h4>
 
-                          <p className="mt-2 text-sm font-medium">
+                          <p className="text-black mt-2 text-sm font-medium">
                             ₹
                             {Number(
                               item.price_inr
