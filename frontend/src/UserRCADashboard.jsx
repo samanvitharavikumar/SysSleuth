@@ -427,7 +427,7 @@ setAiExplanation(cleanAnswer);
 
         <div className="text-center max-w-xl px-8">
 
-          <p className="text-xs tracking-[0.3em] text-[#8EA7B8] font-bold">
+          <p className="text-white/30 text-xs tracking-[0.3em] text-[#8EA7B8] font-bold">
             SYSSLEUTH
           </p>
 
@@ -462,7 +462,7 @@ setAiExplanation(cleanAnswer);
   if (!data) {
 
     return (
-      <div className="min-h-screen bg-[#071A2F] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#6B21A8] via-[#000000] to-[#2E1065] text-white flex items-center justify-center">
 
         <div className="text-center">
 
@@ -470,7 +470,7 @@ setAiExplanation(cleanAnswer);
             SYSSLEUTH
           </p>
 
-          <p className="text-lg mt-5 text-[#B8C9D4]">
+          <p className="text-white/30 text-lg mt-5 text-[#B8C9D4] ">
             Analyzing what went wrong...
           </p>
 
@@ -496,7 +496,7 @@ setAiExplanation(cleanAnswer);
 
   return (
 
-    <div className="min-h-screen bg-gradient-to-br from-[#123B5D] via-[#0B2D4D] to-[#164E63] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#6B21A8] via-[#000000] to-[#2E1065]">
 
 
       {/* ======================================================
@@ -507,12 +507,12 @@ setAiExplanation(cleanAnswer);
 
         <div>
 
-          <h1 className="text-2xl font-black tracking-[0.22em]">
-            SYSSLEUTH
+          <h1 className="text-2xl font-white/30 tracking-[0.22em]">
+           
           </h1>
 
-          <p className="text-[9px] tracking-[0.28em] text-[#71899A] mt-1">
-            INCIDENT EXPLANATION
+          <p className="text-[15px] tracking-[0.28em] text-[#71899A] mt-1">
+           USER INCIDENT EXPLANATION
           </p>
 
         </div>
@@ -520,11 +520,11 @@ setAiExplanation(cleanAnswer);
 
         <button
           onClick={() => {
-            window.location.href = "/user";
+            window.location.href = "/admin";
           }}
-          className="border border-[#6E8799]/50 px-7 py-4 text-[10px] tracking-[0.16em] font-bold hover:bg-white hover:text-[#071A2F] transition"
+          className="text-white/30 border border-[#6E8799]/50 px-7 py-4 text-[10px] tracking-[0.16em] font-bold hover:bg-white hover:text-[#071A2F] transition"
         >
-          BACK TO STORE
+          LOGIN VIA ADMIN 
         </button>
 
       </nav>
@@ -541,11 +541,11 @@ setAiExplanation(cleanAnswer);
         <section className="py-20 border-b border-white/10">
 
           <p className="text-[10px] tracking-[0.35em] text-[#8198A9] font-bold">
-            INCIDENT INVESTIGATION
+          
           </p>
 
 
-          <h1 className="text-[52px] md:text-[80px] leading-[0.9] font-black tracking-[-0.05em] mt-6">
+          <h1 className="text-white/30 Text-[52px] md:text-[80px] leading-[0.9] font-black tracking-[-0.05em] mt-6">
 
             Root Cause
 
@@ -570,7 +570,7 @@ setAiExplanation(cleanAnswer);
             FAILURE SUMMARY
         ================================================== */}
 
-        <section className="grid grid-cols-1 md:grid-cols-3 border-b border-white/10">
+        <section className="text-white/30 grid grid-cols-1 md:grid-cols-2 border-b border-white/10">
 
 
           <InfoCard
@@ -587,14 +587,7 @@ setAiExplanation(cleanAnswer);
           />
 
 
-          <InfoCard
-            title="STATUS CODE"
-            value={
-              trace?.status_code ??
-              data.status_code ??
-              "N/A"
-            }
-          />
+          
 
 
         </section>
@@ -621,7 +614,7 @@ setAiExplanation(cleanAnswer);
             </p>
 
 
-            <h2 className="text-4xl md:text-5xl font-black mt-4">
+            <h2 className="text-white/30 text-4xl md:text-5xl font-black mt-4">
               What happened?
             </h2>
 
@@ -762,7 +755,7 @@ setAiExplanation(cleanAnswer);
             </p>
 
 
-            <h2 className="text-4xl md:text-5xl font-black mt-4">
+            <h2 className="text-white/30 text-4xl md:text-5xl font-black mt-4">
               Failure Trace
             </h2>
 
@@ -819,33 +812,18 @@ setAiExplanation(cleanAnswer);
                   TRACE INFORMATION
               ================================================= */}
 
-              <div className="grid grid-cols-1 md:grid-cols-2">
+              <div className="grid grid-cols-1 md:grid-cols-1">
 
 
                 <TraceItem
                   title="SPAN ID"
                   value={trace.span_id}
                 />
-
-
-                <TraceItem
-                  title="OPERATION"
-                  value={trace.operation}
-                />
-
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2">
 
               
-                <TraceItem
-                  title="HTTP METHOD"
-                  value={trace.http_method}
-                />
-
-
-                <TraceItem
-                  title="STATUS CODE"
-                  value={trace.status_code}
-                />
-
+                
 
                 <TraceItem
                   title="PRODUCT ID"
@@ -874,7 +852,7 @@ setAiExplanation(cleanAnswer);
             RAISE COMPLAINT
         ================================================== */}
 
-        <section className="py-16 border-t border-white/10">
+        <section className="text-white/30 py-16 border-t border-white/10">
 
           <div className="border border-white/10 bg-white/[0.03] p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
 

@@ -763,7 +763,7 @@ function App() {
                               −
                             </button>
 
-                            <span className="text-[11px] font-semibold">
+                            <span className="text-black/40 text-[11px] font-semibold">
                               {
                                 item.quantity
                               }
@@ -808,11 +808,11 @@ function App() {
 
                   <div className="flex items-end justify-between">
 
-                    <span className="text-[9px] font-bold tracking-[0.2em] text-black/40">
+                    <span className="text-[9px] font-bold tracking-[0.2em] text-black">
                       TOTAL
                     </span>
 
-                    <span className="text-2xl font-semibold tracking-[-0.03em]">
+                    <span className="text-black/40 text-2xl font-semibold tracking-[-0.03em]">
                       ₹
                       {cartTotal.toLocaleString(
                         "en-IN"
@@ -900,7 +900,7 @@ function App() {
 
             </div>
 
-            <h2 className="text-6xl font-semibold tracking-[-0.06em]">
+            <h2 className="text-black/30 text-6xl font-semibold tracking-[-0.06em]">
               UH-OH.
             </h2>
 
@@ -916,7 +916,7 @@ function App() {
                     false
                   )
                 }
-                className="w-full border border-black bg-black py-4 text-[9px] font-bold tracking-[0.2em] text-white transition hover:bg-[#222]"
+                className="w-full border border-black bg-slate/30 py-4 text-[9px] font-bold tracking-[0.2em] text-black/40 transition hover:bg-black/60"
               >
                 TRY AGAIN
               </button>
@@ -925,7 +925,7 @@ function App() {
                 onClick={
                   findOutWhatHappened
                 }
-                className="w-full border border-black/15 py-4 text-[9px] font-bold tracking-[0.2em] transition hover:border-black hover:bg-white"
+                className="text-black/30 w-full border border-black py-4 text-[9px] font-bold tracking-[0.2em] transition hover:border-black hover:bg-black/60"
               >
                 FIND OUT WHAT HAPPENED →
               </button>

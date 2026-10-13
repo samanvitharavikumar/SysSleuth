@@ -61,28 +61,28 @@ localStorage.setItem(
   };
 
   return (
-    <div className="min-h-screen bg-[#071A2F] text-white">
+      <div className="min-h-screen bg-gradient-to-br from-[#6B21A8] via-[#000000] to-[#2E1065] text-white ">
+   
 
       {/* NAVBAR */}
       <nav className="h-[82px] border-b border-white/10 px-8 md:px-14 flex items-center justify-between">
 
         <div>
           <h1 className="text-2xl font-black tracking-[0.22em]">
-            SYSSLEUTH
+            
           </h1>
 
           <p className="text-[9px] tracking-[0.28em] text-[#71899A] mt-1">
-            INCIDENT REPORT
-          </p>
+COMPLAINT          </p>
         </div>
 
         <button
           onClick={() => {
-            window.location.href = "/rca";
+            window.location.href = "/tokens";
           }}
           className="border border-[#6E8799]/50 px-6 py-3 text-[10px] tracking-[0.16em] font-bold hover:bg-white hover:text-[#071A2F] transition"
         >
-          BACK TO RCA
+          TOKENS
         </button>
 
       </nav>
@@ -97,7 +97,7 @@ localStorage.setItem(
             INCIDENT REPORT
           </p>
 
-          <h1 className="text-5xl md:text-7xl font-black tracking-[-0.05em] mt-5">
+          <h1 className="text-white/30 text-5xl md:text-7xl font-black tracking-[-0.05em] mt-5">
             Raise a
             <br />
             <span className="text-[#657D91]">

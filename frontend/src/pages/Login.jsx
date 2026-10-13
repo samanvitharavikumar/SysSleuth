@@ -103,29 +103,13 @@ export default function Login() {
             md:text-3xl
             font-bold
             tracking-[0.25em]
-            text-white
+            text-white/30
           "
         >
           SYSSLEUTH
         </div>
 
-        <div
-          className="
-            rounded-full
-            border
-            border-purple-400/30
-            bg-purple-500/10
-            px-6
-            py-3
-            text-xs
-            tracking-[0.2em]
-            uppercase
-            text-purple-200
-            backdrop-blur-md
-          "
-        >
-          LOGIN
-        </div>
+        
 
       </nav>
 
@@ -442,7 +426,7 @@ export default function Login() {
                   className="
                     relative
                     overflow-hidden
-                    rounded-3xl
+                   
                     border
                     border-white/10
                     bg-white/[0.06]
@@ -487,7 +471,7 @@ export default function Login() {
                           mb-4
                         "
                       >
-                        Secure Access
+                       
                       </p>
 
 
@@ -496,6 +480,7 @@ export default function Login() {
                           text-4xl
                           font-bold
                           tracking-tight
+                          text-white/30
                         "
                       >
                         Choose your role.
@@ -506,7 +491,7 @@ export default function Login() {
                         className="
                           mt-3
                           text-sm
-                          text-white/40
+                          text-white/30
                           mb-10
                         "
                       >
@@ -523,14 +508,15 @@ export default function Login() {
                         className="
                           group
                           w-full
-                          rounded-2xl
+                         
                           border
                           border-white/10
                           bg-white/[0.04]
                           p-6
                           mb-4
                           text-left
-                          text-white
+                          text-white/30
+                          
                           backdrop-blur-xl
                           transition-all
                           duration-300
@@ -552,6 +538,7 @@ export default function Login() {
 
                             <p
                               className="
+                              
                                 text-xs
                                 tracking-[0.3em]
                                 uppercase
@@ -611,13 +598,13 @@ export default function Login() {
                         className="
                           group
                           w-full
-                          rounded-2xl
+                         
                           border
                           border-white/10
                           bg-white/[0.04]
                           p-6
                           text-left
-                          text-white
+                          text-white/30
                           backdrop-blur-xl
                           transition-all
                           duration-300
@@ -883,7 +870,7 @@ export default function Login() {
                           type="submit"
                           className="
                             w-full
-                            rounded-xl
+                           
                             border
                             border-purple-400/40
                             bg-purple-600/20
