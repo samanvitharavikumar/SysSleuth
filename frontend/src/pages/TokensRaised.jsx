@@ -17,7 +17,7 @@ export default function TokensRaised() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#6B21A8] via-[#000000] to-[#2E1065] min-h-screen bg-[#071A2F] text-white">
+    <div className="bg-gradient-to-br from-[#2E1065] via-[#000000] to-[#2E1065] min-h-screen bg-[#071A2F] text-white">
 
       {/* NAVBAR */}
       <nav className="h-[82px] border-b border-white/10 px-8 md:px-14 flex items-center justify-between">
@@ -140,7 +140,12 @@ export default function TokensRaised() {
                   >
                     VIEW RCA
                   </button>
-
+                   <button
+  onClick={() => (window.location.href = "/fixed")}
+  className="border border-white/30 px-5 py-3 text-[9px] tracking-[0.15em] font-bold hover:bg-white hover:text-[#071A2F] transition"
+>
+  STATUS
+</button>
                 </div>
 
               </div>

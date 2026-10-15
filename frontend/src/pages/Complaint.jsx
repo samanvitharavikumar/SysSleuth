@@ -62,7 +62,7 @@ localStorage.setItem(
   };
 
   return (
-      <div className="min-h-screen bg-gradient-to-br from-[#6B21A8] via-[#000000] to-[#2E1065] text-white ">
+      <div className="text-font- sans min-h-screen bg-gradient-to-br from-[#2E1065] via-[#000000] to-[#2E1065] text-white ">
    
 
       {/* NAVBAR */}

@@ -469,24 +469,25 @@ setAiExplanation(cleanAnswer);
 
   return (
 
-    <div className="min-h-screen bg-gradient-to-br from-[#6B21A8] via-[#000000] to-[#2E1065]">
+    <div className=" font-mono min-h-screen bg-gradient-to-br from-[#2E1065] via-[#000000] to-[#2E1065]">
 
 
       {/* ======================================================
           NAVBAR
       ====================================================== */}
 
-      <nav className="h-[82px] border-b border-white/10 px-14 flex items-center justify-between">
+      <nav className="font-mono h-[82px] border-b border-white/10 px-14 flex items-center justify-between">
 
         <div>
 
           <h1 className="text-2xl font-white/30 tracking-[0.22em]">
            
-          </h1>
+          
 
-          <p className="text-[15px] tracking-[0.28em] text-[#71899A] mt-1">
+          <p className="font-mono text-2xl text-[15px] tracking-[0.28em] text-[#71899A] mt-1">
            USER INCIDENT EXPLANATION
           </p>
+          </h1> 
 
         </div>
 
@@ -543,7 +544,7 @@ setAiExplanation(cleanAnswer);
             FAILURE SUMMARY
         ================================================== */}
 
-        <section className="text-white/30 grid grid-cols-1 md:grid-cols-2 border-b border-white/10">
+        <section className="border-l border-white/30 text-white/30 grid grid-cols-1 md:grid-cols-2 border-b border-white/10">
 
 
           <InfoCard

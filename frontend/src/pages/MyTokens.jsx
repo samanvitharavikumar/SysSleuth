@@ -118,6 +118,37 @@ export default function MyTokens() {
             MY COMPLAINTS
           </p>
         </div>
+ {/* Large purple glow */}
+
+          <div
+            className="
+              absolute
+              -left-40
+              -top-40
+              h-[500px]
+              w-[500px]
+              bg-purple-700/15
+              blur-[140px]
+            "
+          />
+
+
+          {/* Bottom purple glow */}
+
+          <div
+            className="
+              absolute
+              -bottom-40
+              -right-40
+              h-[500px]
+              w-[500px]
+            
+              bg-violet-600/10
+              blur-[140px]
+            "
+          />
+
+          
 
         <div className="flex flex-wrap gap-3">
           <button
@@ -189,7 +220,7 @@ export default function MyTokens() {
               return (
                 <article
                   key={token.id}
-                  className="border border-white/10 bg-white/[0.03] p-6 md:p-8"
+  className="relative z-10 border border-white/10 bg-white/[0.03] p-6 md:p-8"
                 >
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div>
@@ -211,8 +242,11 @@ export default function MyTokens() {
                       <button
                         type="button"
                           onClick={() => {
-                            window.location.href = "/status";
-                        }}
+                              sessionStorage.setItem("selected_token_id", token.id);
+
+  window.location.href = "/status";
+
+}} 
                         className="border border-violet-400/40 px-4 py-2 text-xs font-bold text-violet-200 hover:bg-violet-400/10 transition"
                       >
                         STATUS

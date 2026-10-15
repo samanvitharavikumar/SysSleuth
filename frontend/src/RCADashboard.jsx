@@ -710,7 +710,7 @@ product_id:
 
   return (
 
-    <div className="bg-gradient-to-br from-[#6B21A8] via-[#000000] to-[#2E1065] text-white">
+    <div className="bg-gradient-to-br from-[#2E1065] via-[#000000] to-[#2E1065] text-white">
 
 
 
@@ -731,19 +731,12 @@ product_id:
 
 
 
-          <h1 className="text-xl md:text-2xl font-black tracking-[0.16em] md:tracking-[0.22em]">
+          <h1 className="text-white/40 text-xl md:text-2xl font-black tracking-[0.16em] md:tracking-[0.22em]">
 
-            SYSSLEUTH / FAILURE INVESTIGATION
+            FAILURE INVESTIGATION
 
           </h1>
 
-
-
-          <p className="text-[9px] tracking-[0.28em] text-[#71899A] mt-1">
-
-           
-
-          </p>
 
 
 
@@ -813,7 +806,7 @@ product_id:
 
 
 
-      <main className="bg-gradient-to-br from-[#6B21A8] via-[#000000] to-[#2E1065] max-w-[1520px] mx-auto px-6 md:px-14 lg:px-16">
+      <main className="bg-gradient-to-br from-[#2E1065] via-[#000000] to-[#2E1065] max-w-[1520px] mx-auto px-6 md:px-14 lg:px-16">
 
 
 
@@ -835,15 +828,10 @@ product_id:
 
 
 
-            <div className="w-11 h-[1px] bg-white/70" />
 
 
 
-            <p className="text-[10px] tracking-[0.35em] text-[#8198A9] font-bold">
 
-              
-
-            </p>
 
 
 
@@ -853,7 +841,7 @@ product_id:
 
 
 
-          <h1 className="text-[48px] md:text-[85px] leading-[0.86] font-black tracking-[-0.06em] max-w-4xl">
+          <h1 className="text-white/40 text-[48px] md:text-[85px] leading-[0.86] font-black tracking-[-0.06em] max-w-4xl">
 
 
 
@@ -901,11 +889,11 @@ product_id:
 
 
 
-        <section className="grid grid-cols-1 md:grid-cols-2 border-b border-white/10">
+        <section className="pl-10 pr-10 border-r border-white/15 grid grid-cols-1 border-l border-white/15 md:grid-cols-2 border-b border-white/10">
 
 
 
-          <div className="py-14 md:pr-14 md:border-r border-white/10">
+          <div className="py-14 md:pr-14 md:border-r border-white/10  ">
 
 
 
@@ -977,7 +965,7 @@ product_id:
 
 
 
-        <section className="grid grid-cols-1 md:grid-cols-3 border-b border-white/10">
+        <section className="border-l border-white/15 grid grid-cols-1 md:grid-cols-3 border-b border-white/10">
 
 
 
@@ -1451,7 +1439,7 @@ product_id:
 
 
 
-            <p className="text-[10px] tracking-[0.3em] text-cyan-300 font-bold">
+            <p className="text-[10px] tracking-[0.3em] text-purple-300 font-bold">
 
               AI ASSISTANCE
 
@@ -1459,22 +1447,93 @@ product_id:
 
 
 
-            ```jsx
+           
 <div className="flex flex-wrap items-center justify-between gap-5">
   <h1 className="text-5xl md:text-7xl font-bold text-white">
     Proposed Fix
   </h1>
 
-  <button
-    onClick={() => {
-      window.location.href = "/fixed";
-    }}
-    className="border border-purple-400/50 bg-purple-600/20 px-6 py-3 text-sm font-bold tracking-widest text-white transition hover:bg-purple-600"
-  >
-    APPLY FIX →
-  </button>
+  
+<button
+  onClick={() => {
+    const fixedOrderData = {
+      incident: {
+        failure_type: data.failure_type || "UNKNOWN",
+        root_cause: data.root_cause || "",
+        reason: data.reason || "",
+        service: data.service || trace?.service || "inventory-service",
+        confidence: data.confidence ?? null,
+        trace_id: data.trace_id || trace?.trace_id || null,
+        span_id: data.span_id || trace?.span_id || null,
+        operation: data.operation || trace?.operation || null,
+        status_code: data.status_code ?? trace?.status_code ?? null,
+        product_id: trace.product_id,
+        product_id: productId || trace?.product_id || null,
+        quantity: data.quantity ?? trace?.quantity ?? null,
+      },
+      proposed_fix: {
+        recommended_action:
+          proposedFix?.recommended_action || "",
+        why: proposedFix?.why || "",
+        expected_result: proposedFix?.expected_result || "",
+        developer_investigation:
+          proposedFix?.developer_investigation || [],
+      },
+    };
+
+       const tokens = JSON.parse(
+      localStorage.getItem("raised_tokens") || "[]"
+    );
+
+    const incident = fixedOrderData.incident;
+    const traceId = incident.trace_id;
+    const selectedProductId = incident.product_id;
+
+    const updatedTokens = tokens.map((token) => {
+      const matches = traceId
+        ? token.trace_id === traceId
+        : String(token.product_id) ===
+          String(selectedProductId);
+
+      if (!matches) return token;
+
+      return {
+        ...token,
+        status: "RESOLVED",
+
+        order_details: {
+          order_id: selectedProductId,
+          quantity: incident.quantity ?? 1,
+          display_status: "Order Placed Successfully",
+        },
+
+        incident_details: incident,
+        proposed_fix: fixedOrderData.proposed_fix,
+
+        // This is a demo status, not backend order confirmation.
+        order_confirmation: false,
+      };
+    });
+
+    localStorage.setItem(
+      "raised_tokens",
+      JSON.stringify(updatedTokens)
+    );
+
+    sessionStorage.setItem(
+      "fixed_order_data",
+      JSON.stringify(fixedOrderData)
+    );
+
+    window.location.href = "/fixed";
+  }}
+  className="border border-white-400/50 px-6 py-3 text-sm font-bold tracking-widest text-white transition hover:bg-purple-600"
+>
+  APPLY FIX 
+</button>
+
 </div>
-```
+
 
 
 
@@ -1504,7 +1563,7 @@ product_id:
 
 
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-8">
+            <div className=" border border-white/10 bg-white/[0.025] p-8">
 
 
 
@@ -1538,7 +1597,7 @@ product_id:
 
 
 
-            <div className="rounded-2xl border border-red-400/20 bg-red-400/5 p-8">
+            <div className=" border border-red-400/20 bg-red-400/5 p-8">
 
 
 
@@ -1592,7 +1651,7 @@ product_id:
 
 
 
-                <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-8">
+                <div className=" border border-white/10 bg-white/[0.025] p-8">
 
 
 
@@ -1632,11 +1691,11 @@ product_id:
 
 
 
-                      <div className="shrink-0 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2">
+                      <div className="shrink-0 border border-white-400 px-4 py-2">
 
 
 
-                        <span className="text-xs font-bold text-cyan-300">
+                        <span className="text-xs font-bold text-white-300">
 
                           {proposedFix.confidence}
 
@@ -1750,7 +1809,7 @@ product_id:
 
 
 
-                            <span className="text-cyan-300 font-bold">
+                            <span className="text-white-300 font-bold">
 
                               {index + 1}.
 
