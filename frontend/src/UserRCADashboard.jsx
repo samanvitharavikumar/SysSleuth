@@ -49,7 +49,12 @@ export default function UserRCADashboard() {
   // REAL TRACE ID
   // ============================================================
 
-  const traceId = trace?.trace_id;
+ const traceId =
+  data?.trace_id ||
+  data?.traces?.find((item) => item?.trace_id)?.trace_id ||
+  trace?.trace_id ||
+  sessionStorage.getItem("rca_trace_id") ||
+  null;
 
   const hasTraceId =
     Boolean(
@@ -87,87 +92,54 @@ useEffect(() => {
   // LOAD RCA DATA
   // ============================================================
 
+ 
   useEffect(() => {
     let cancelled = false;
+    let retryTimer;
 
     async function loadRCA() {
       try {
         if (!productId) {
-          throw new Error(
-            "No product ID found for this incident."
-          );
+          throw new Error("No product ID found for this incident.");
         }
 
         const url =
           `http://localhost:8010/analyze/inventory-service` +
           `?product_id=${encodeURIComponent(productId)}`;
 
-        console.log(
-          "================================="
-        );
-
-        console.log(
-          "USER RCA REQUEST:",
-          url
-        );
-
-        console.log(
-          "================================="
-        );
-
         const response = await fetch(url);
 
         if (!response.ok) {
-          throw new Error(
-            `RCA backend returned ${response.status}`
-          );
+          throw new Error(`RCA backend returned ${response.status}`);
         }
 
         const result = await response.json();
 
-        console.log(
-          "USER RCA DATA:",
-          result
-        );
+        console.log("USER RCA DATA:", result);
 
-        if (cancelled) {
+        if (cancelled) return;
+
+        const isUnknown =
+          String(result.failure_type || "").toUpperCase() === "UNKNOWN";
+
+        const hasTraces =
+          Array.isArray(result.traces) &&
+          result.traces.some((item) => item?.trace_id);
+
+        // Keep real incident data, even if classification is UNKNOWN.
+        if (!isUnknown || hasTraces) {
+          setData(result);
           return;
         }
 
+        console.log("RCA still UNKNOWN. Retrying...");
 
-        // --------------------------------------------------------
-        // Jaeger may need a moment to receive the latest trace.
-        // --------------------------------------------------------
-
-        if (
-          String(
-            result.failure_type || ""
-          ).toUpperCase() === "UNKNOWN"
-        ) {
-          console.log(
-            "RCA still UNKNOWN. Retrying..."
-          );
-
-          setTimeout(() => {
-            if (!cancelled) {
-              loadRCA();
-            }
-          }, 2000);
-
-          return;
-        }
-
-
-        setData(result);
-
+        retryTimer = setTimeout(() => {
+          if (!cancelled) loadRCA();
+        }, 2000);
       } catch (err) {
-
         if (!cancelled) {
-          console.error(
-            "RCA ERROR:",
-            err
-          );
-
+          console.error("RCA ERROR:", err);
           setError(err.message);
         }
       }
@@ -177,9 +149,10 @@ useEffect(() => {
 
     return () => {
       cancelled = true;
+      clearTimeout(retryTimer);
     };
-
   }, [productId]);
+
 
 
   // ============================================================
@@ -800,7 +773,7 @@ setAiExplanation(cleanAnswer);
 
 
                 <p className="text-xl md:text-2xl font-mono font-bold text-white mt-4 break-all">
-                  {trace.trace_id}
+                  {traceId}
                 </p>
 
 
@@ -812,33 +785,24 @@ setAiExplanation(cleanAnswer);
                   TRACE INFORMATION
               ================================================= */}
 
-              <div className="grid grid-cols-1 md:grid-cols-1">
+             <div className="grid grid-cols-1 md:grid-cols-1">
+  <TraceItem
+    title="SPAN ID"
+    value={trace?.span_id}
+  />
+</div>
 
+<div className="grid grid-cols-1 md:grid-cols-2">
+  <TraceItem
+    title="PRODUCT ID"
+    value={trace?.product_id ?? productId}
+  />
 
-                <TraceItem
-                  title="SPAN ID"
-                  value={trace.span_id}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2">
-
-              
-                
-
-                <TraceItem
-                  title="PRODUCT ID"
-                  value={trace.product_id}
-                />
-
-
-                <TraceItem
-                  title="QUANTITY"
-                  value={trace.quantity}
-                />
-
-
-              </div>
-
+  <TraceItem
+    title="QUANTITY"
+    value={trace?.quantity}
+  />
+</div>
 
             </div>
 

@@ -41,7 +41,7 @@ def get_trace(state: RCAState):
 
     trace_id = state["trace_id"]
 
-    url = f"http://localhost:16686/api/traces/{trace_id}"
+    url = f"http://host.docker.internal:16686/api/traces/{trace_id}"
 
     response = requests.get(
         url,
@@ -444,7 +444,7 @@ The goal is to answer:
     # --------------------------------------------------
 
     response = requests.post(
-        "http://localhost:11434/api/generate",
+       "http://host.docker.internal:11434/api/generate",
 
         json={
             "model": "gemma3",

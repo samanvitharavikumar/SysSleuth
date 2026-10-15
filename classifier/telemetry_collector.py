@@ -1,5 +1,5 @@
+import json
 import requests
-
 
 JAEGER_URL = "http://jaeger:16686"
 # ============================================================
@@ -8,9 +8,8 @@ JAEGER_URL = "http://jaeger:16686"
 
 def get_recent_traces(service_name, limit=100):
     """
-    Fetch recent traces for a specific service from Jaeger.
+    Fetch recent Jaeger traces for a specific service.
     """
-
     try:
         response = requests.get(
             f"{JAEGER_URL}/api/traces",
@@ -18,28 +17,23 @@ def get_recent_traces(service_name, limit=100):
                 "service": service_name,
                 "limit": limit,
             },
-            timeout=5,
+            timeout=10,
         )
 
         response.raise_for_status()
+        return response.json().get("data", [])
 
-        data = response.json()
-
-        return data.get("data", [])
-
-    except Exception as e:
-        print("Jaeger error:", e)
-        return []
-
-
-def get_recent_traces_all_services(limit=100):
+    except requests.RequestException as e:
+        print(f"Jaeger trace search error for {service_name}: {e}")
+        raise
+    
+def get_recent_traces_all_services(limit=100, product_id=None):
     """
     Fetch recent traces from all SysSleuth services.
 
-    This is required because a checkout can fail in a
-    downstream service such as payment-service.
+    When product_id is provided, use Jaeger's tag search so that
+    older traces can be found without relying on the latest 100.
     """
-
     services = [
         "order-service",
         "inventory-service",
@@ -48,27 +42,42 @@ def get_recent_traces_all_services(limit=100):
     ]
 
     all_traces = []
-
-    # Used to prevent duplicate distributed traces.
     seen_trace_ids = set()
 
     for service_name in services:
+        params = {
+            "service": service_name,
+            "limit": limit,
+        }
 
-        traces = get_recent_traces(
-            service_name,
-            limit,
-        )
+        if product_id is not None:
+            params["tags"] = json.dumps({
+                "failure.product_id": str(product_id)
+            })
 
-        for trace in traces:
+        try:
+            response = requests.get(
+                f"{JAEGER_URL}/api/traces",
+                params=params,
+                timeout=10,
+            )
+            response.raise_for_status()
 
-            trace_id = trace.get("traceID")
+            traces = response.json().get("data", [])
 
-            if trace_id in seen_trace_ids:
-                continue
+            for trace in traces:
+                trace_id = trace.get("traceID")
 
-            seen_trace_ids.add(trace_id)
+                if not trace_id or trace_id in seen_trace_ids:
+                    continue
 
-            all_traces.append(trace)
+                seen_trace_ids.add(trace_id)
+                all_traces.append(trace)
+
+        except Exception as e:
+            print(
+                f"Jaeger search error for {service_name}: {e}"
+            )
 
     return all_traces
 
@@ -743,9 +752,12 @@ def extract_failure_traces_for_product(
     span may not be returned with the product tag after the process exits.
     """
 
+   
     all_traces = get_recent_traces_all_services(
-        limit
+        limit=limit,
+        product_id=product_id,
     )
+
 
     matching_traces = []
 

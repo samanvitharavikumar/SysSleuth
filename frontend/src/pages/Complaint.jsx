@@ -48,6 +48,7 @@ const token = {
   span_id: spanId,
   product_id: productId,
   created_at: new Date().toISOString(),
+  status: "Submitted",
 };
 
 existingTokens.push(token);
@@ -78,7 +79,7 @@ COMPLAINT          </p>
 
         <button
           onClick={() => {
-            window.location.href = "/tokens";
+            window.location.href = "/my-tokens";
           }}
           className="border border-[#6E8799]/50 px-6 py-3 text-[10px] tracking-[0.16em] font-bold hover:bg-white hover:text-[#071A2F] transition"
         >

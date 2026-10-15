@@ -37,55 +37,32 @@ app.add_middleware(
 # GET RECENT LOGS
 # ============================================================
 
-def get_recent_logs(
-    service_name,
-    lines=200,
-):
-    """
-    Read recent Docker logs for the service.
-    """
 
+
+
+def get_recent_logs(service_name, lines=1000):
     try:
-
         result = subprocess.run(
-            [
-                "docker",
-                "compose",
-                "logs",
-                "--tail",
-                str(lines),
-                service_name,
-            ],
+            ["docker", "logs", "--tail", str(lines), service_name],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=15,
         )
 
-        output = result.stdout
+        output = (result.stdout or "") + "\n" + (result.stderr or "")
+        if result.returncode != 0:
+            print(f"Docker log error for {service_name}: {output}")
+            return []
 
-        if result.stderr:
-            output += "\n" + result.stderr
+        raw_logs = [line.strip() for line in output.splitlines() if line.strip()]
+        logs = [line for line in raw_logs if "GET /metrics" not in line]
 
-        logs = []
+        print(f"[LOG DEBUG] {service_name}: raw={len(raw_logs)}, filtered={len(logs)}")
 
-        for line in output.splitlines():
-
-            line = line.strip()
-
-            if not line:
-                continue
-
-            logs.append(line)
-
-        return logs
+        return logs if logs else raw_logs
 
     except Exception as e:
-
-        print(
-            "Docker log error:",
-            e,
-        )
-
+        print(f"Docker log collection error: {e}")
         return []
 
 
@@ -327,105 +304,54 @@ def analyze_failure(
     return response
 
 
-# ============================================================
-# HEALTH
-# ============================================================
 
-@app.get("/")
-def root():
-
-    return {
-        "service": "SysSleuth RCA Classifier",
-        "status": "running",
-    }
-
-
-# ============================================================
-# ANALYZE
-# ============================================================
-
-@app.get(
-    "/analyze/{service_name}"
-)
+@app.get("/analyze/{service_name}")
 def analyze(
     service_name: str,
     product_id: int | None = None,
 ):
-
-    print(
-        f"\nAnalyzing service: {service_name}"
-    )
+    print(f"\nAnalyzing service: {service_name}")
 
     # ========================================================
     # PRODUCT-SPECIFIC RCA
     # ========================================================
 
     if product_id is not None:
+        print(f"Product-specific RCA requested: {product_id}")
 
-        print(
-            f"Product-specific RCA requested: {product_id}"
-        )
-
-        # Search ALL services for this product.
         traces = extract_failure_traces_for_product(
             product_id,
             100,
         )
 
-        print(
-            f"Matching product failure traces: "
-            f"{len(traces)}"
-        )
+        print(f"Matching product failure traces: {len(traces)}")
 
-        # ----------------------------------------------------
-        # DETERMINE ACTUAL FAILING SERVICE
-        # ----------------------------------------------------
-
+        # Use the service identified by the failure trace.
         if traces:
-
-            actual_service = traces[0].get(
-                "service"
-            )
-
+            actual_service = traces[0].get("service")
             if actual_service:
+                service_name = actual_service
 
-                service_name = (
-                    actual_service
-                )
-
-        # ----------------------------------------------------
-        # LOGS FROM ACTUAL SERVICE
-        # ----------------------------------------------------
-
-        logs = get_recent_logs(
-            service_name,
-            200,
-        )
-
-    # ========================================================
-    # NORMAL / FALLBACK RCA
-    # ========================================================
+        logs = get_recent_logs(service_name, 1000)
 
     else:
-
-        logs = get_recent_logs(
-            service_name,
-            200,
-        )
-
-        print(
-            f"Collected logs: {len(logs)}"
-        )
+        # Normal RCA when no product ID is provided.
+        logs = get_recent_logs(service_name, 1000)
 
         traces = extract_failure_traces(
             service_name,
             100,
         )
 
-    print(
-        f"Collected failure traces: "
-        f"{len(traces)}"
-    )
+        # Switch to the actual failing service if identified.
+        if traces:
+            actual_service = traces[0].get("service")
+            if actual_service:
+                service_name = actual_service
+                logs = get_recent_logs(service_name, 1000)
+
+    print(f"Collected logs: {len(logs)}")
+    print(f"Collected failure traces: {len(traces)}")
 
     # ========================================================
     # CLASSIFICATION
@@ -436,10 +362,7 @@ def analyze(
         traces,
     )
 
-    print(
-        "Classification:",
-        classification,
-    )
+    print("Classification:", classification)
 
     # ========================================================
     # RCA

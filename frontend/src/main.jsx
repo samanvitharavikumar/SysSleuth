@@ -1,12 +1,15 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
+import MyTokens from "./pages/MyTokens";
 import Complaint from "./pages/Complaint";
 import App from "./App";
 import UserRCADashboard from "./UserRCADashboard";
 import RCADashboard from "./RCADashboard";
 import Login from "./pages/Login";
 import TokensRaised from "./pages/TokensRaised";
+import Fixed from "./pages/Fixed";
+import Status from "./pages/Status";
 
 import "./index.css";
 
@@ -22,61 +25,60 @@ let page;
 
 if (path === "/" || path === "/login") {
   page = <Login />;
-}
-
-// USER E-COMMERCE SITE
-else if (path === "/user") {
+} else if (path === "/admin/login") {
+  page = <Login />;
+} else if (path === "/user") {
   if (userLoggedIn) {
     page = <App />;
   } else {
     window.location.href = "/login";
   }
-}
-
-// USER RCA DASHBOARD
-else if (path === "/rca") {
+} else if (path === "/rca") {
   if (userLoggedIn) {
     page = <UserRCADashboard />;
   } else {
     window.location.href = "/login";
   }
-}
-
-// COMPLAINT PAGE
-else if (path === "/complaint") {
+} else if (path === "/complaint") {
   if (userLoggedIn) {
     page = <Complaint />;
   } else {
     window.location.href = "/login";
   }
-}
-// ADMIN TOKENS
-else if (path === "/tokens") {
+} else if (path === "/my-tokens") {
+  if (userLoggedIn) {
+    page = <MyTokens />;
+  } else {
+    window.location.href = "/login";
+  }
+} else if (path === "/status") {
+  if (userLoggedIn) {
+    page = <Status />;
+  } else {
+    window.location.href = "/login";
+  }
+} else if (path === "/tokens") {
   if (adminLoggedIn) {
     page = <TokensRaised />;
   } else {
     window.location.href = "/login";
   }
-}
-
-// ADMIN ORIGINAL RCA DASHBOARD
-else if (path === "/admin") {
+} else if (path === "/admin") {
   if (adminLoggedIn) {
     page = <RCADashboard />;
   } else {
     window.location.href = "/login";
   }
+} else if (path === "/fixed") {
+  if (adminLoggedIn) {
+    page = <Fixed />;
+  } else {
+    window.location.href = "/login";
+  }
+} else {
+  window.location.href = "/login";
 }
 
-// ANY UNKNOWN URL
-else {
-  page = <Login />;
-}
-
-ReactDOM.createRoot(
-  document.getElementById("root")
-).render(
-  <React.StrictMode>
-    {page}
-  </React.StrictMode>
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>{page || null}</React.StrictMode>
 );

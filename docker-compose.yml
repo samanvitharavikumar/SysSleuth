@@ -1,80 +1,63 @@
+
 services:
 
   postgres:
     image: postgres:16
     container_name: syssleuth-postgres
     restart: unless-stopped
-
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: syssleuth_inventory
 
-
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: syssleuth-otel-collector
     restart: unless-stopped
-
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
-
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
       - postgres_data:/var/lib/postgresql/data
-
     ports:
       - "14317:4317"
       - "4318:4318"
       - "8888:8888"
 
-
   order-service:
     build: ./order-service
     container_name: order-service
     restart: unless-stopped
-
     ports:
       - "8001:8001"
-
     depends_on:
       - postgres
-
 
   inventory-service:
     build: ./inventory-service
     container_name: inventory-service
     restart: unless-stopped
-
     ports:
       - "8002:8002"
-
     depends_on:
       - postgres
-
 
   payment-service:
     build: ./payment-service
     container_name: payment-service
     restart: unless-stopped
-
     ports:
       - "8003:8003"
-
     depends_on:
       - postgres
-
 
   product-service:
     build: ./product-service
     container_name: product-service
     restart: unless-stopped
-
     ports:
       - "8004:8004"
-
     depends_on:
       - postgres
-
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -82,15 +65,23 @@ services:
       DB_USER: postgres
       DB_PASSWORD: password123
 
-
   classifier:
     build: ./classifier
     container_name: classifier
     restart: unless-stopped
-
     ports:
       - "8010:8010"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
+  ai_service:
+    build: ./ai_service
+    container_name: syssleuth-ai-service
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    environment:
+      OLLAMA_HOST: http://host.docker.internal:11434
 
 volumes:
   postgres_data:

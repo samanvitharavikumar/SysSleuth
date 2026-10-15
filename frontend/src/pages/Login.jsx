@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 
 export default function Login() {
-  const [role, setRole] = useState(null);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+const isAdminLogin = window.location.pathname === "/admin/login";
+
+const [role, setRole] = useState(isAdminLogin ? "admin" : null);
+const [username, setUsername] = useState("");
+const [password, setPassword] = useState("");
+const [error, setError] = useState("");
 
   const selectRole = (selectedRole) => {
     setRole(selectedRole);
@@ -13,12 +15,17 @@ export default function Login() {
     setError("");
   };
 
-  const goBack = () => {
-    setRole(null);
-    setUsername("");
-    setPassword("");
-    setError("");
-  };
+ const goBack = () => {
+  if (isAdminLogin) {
+    window.location.href = "/my-tokens";
+    return;
+  }
+
+  setRole(null);
+  setUsername("");
+  setPassword("");
+  setError("");
+};
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -33,10 +40,10 @@ export default function Login() {
       username === "user" &&
       password === "user123"
     ) {
-      sessionStorage.setItem(
-        "user_logged_in",
-        "true"
-      );
+      sessionStorage.setItem("user_logged_in", "true");
+  sessionStorage.setItem("logged_in_username", username);
+
+  sessionStorage.removeItem("admin_logged_in");
 
       sessionStorage.removeItem(
         "admin_logged_in"

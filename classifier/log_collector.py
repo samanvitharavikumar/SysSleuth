@@ -3,13 +3,11 @@ import subprocess
 
 def get_recent_logs(service_name, lines=500):
     """
-    Get recent Docker logs for a service.
+    Get recent Docker logs for a service container.
     """
-
     result = subprocess.run(
         [
             "docker",
-            "compose",
             "logs",
             "--tail",
             str(lines),
@@ -20,9 +18,12 @@ def get_recent_logs(service_name, lines=500):
     )
 
     if result.returncode != 0:
+        print(
+            f"Failed to collect logs for {service_name}: "
+            f"{result.stderr}"
+        )
         return []
 
-    # Remove noisy Prometheus /metrics logs
     logs = [
         line
         for line in result.stdout.splitlines()
