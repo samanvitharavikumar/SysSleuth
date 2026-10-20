@@ -1,39 +1,32 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import subprocess
+import requests
 
 from telemetry_collector import (
+    JAEGER_URL,
     extract_failure_traces,
     extract_failure_traces_for_product,
 )
 
-from failure_classifier import (
-    classify_failure,
-)
+from failure_classifier import classify_failure
 
 
-app = FastAPI(
-    title="SysSleuth RCA Classifier"
-)
-
-
-# ============================================================
-# CORS
-# ============================================================
+app = FastAPI(title="SysSleuth RCA Classifier")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# ============================================================
+#=====================================
 # GET RECENT LOGS
 # ============================================================
 
@@ -305,12 +298,33 @@ def analyze_failure(
 
 
 
+def check_jaeger():
+    """
+    Fail loudly if Jaeger cannot be reached. Without this, an unreachable
+    Jaeger silently produces zero traces and the RCA falls through to
+    UNKNOWN, which hides the real problem.
+    """
+    try:
+        requests.get(
+            f"{JAEGER_URL}/api/services",
+            timeout=5,
+        ).raise_for_status()
+    except requests.RequestException as e:
+        print(f"Jaeger unreachable at {JAEGER_URL}: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Jaeger is unreachable at {JAEGER_URL}",
+        )
+
+
 @app.get("/analyze/{service_name}")
 def analyze(
     service_name: str,
     product_id: int | None = None,
 ):
     print(f"\nAnalyzing service: {service_name}")
+
+    check_jaeger()
 
     # ========================================================
     # PRODUCT-SPECIFIC RCA

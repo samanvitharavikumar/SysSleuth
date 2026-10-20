@@ -262,7 +262,7 @@ function App() {
   // --------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#6B21A8] via-[#000000] to-[#2E1065] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#2E1065] via-[#000000] to-[#2E1065] text-white">
 
       {/* ==================================================
           BACKGROUND GRAPHIC
@@ -290,62 +290,45 @@ function App() {
           NAVBAR
       ================================================== */}
 
-      <header className="sticky top-0 z-50 border-b border-black/[0.08]/90 backdrop-blur-xl">
+<header className="sticky top-0 z-50 border-b border-black/[0.08] backdrop-blur-xl">
+  <div className="mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-4 px-6 py-4 lg:px-10">
 
-        <div className="mx-auto flex h-[76px] max-w-[1500px] items-center justify-between px-6 lg:px-10">
+    {/* LEFT: LOGO */}
+    <a href="#home" className="shrink-0">
+      <h1 className="text-2xl font-black tracking-[0.22em]">
+        SYSSLEUTH
+      </h1>
+      <p className="mt-1 text-[9px] tracking-[0.28em] text-[#71899A]">
+       E-COMMERCE.
+      </p>
+    </a>
 
-          {/* LOGO */}
+    {/* RIGHT: TOKENS + CART */}
+    <div className="ml-auto flex shrink-0 items-center gap-4">
 
-          <a
-            href="#home"
-            className="flex items-center gap-3"
-          >
-            <div>
-              <div className="text-[20px] font-bold tracking-[0.18em]">
-                
-              </div>
-            </div>
-          </a>
+      <button
+        onClick={() => {
+          window.location.href = "/my-tokens";
+        }}
+        className="border border-[#6E8799]/50 px-6 py-3 text-[10px] font-bold tracking-[0.16em] transition hover:bg-white hover:text-[#071A2F]"
+      >
+        TOKENS
+      </button>
 
-          {/* NAV */}
+      <button
+        onClick={() => setCartOpen(true)}
+        className="flex items-center gap-4 border border-black bg-black px-5 py-3 text-[10px] font-bold tracking-[0.18em] text-white transition hover:bg-[#222]"
+      >
+        CART
+        <span className="flex h-5 min-w-5 items-center justify-center border border-white/30 px-1 text-[9px]">
+          {cartCount}
+        </span>
+      </button>
 
-          <nav className="hidden items-center gap-10 md:flex">
+    </div>
+  </div>
+</header>
 
-            <a
-              href="#home"
-              className="text-[19px] font-medium tracking-[0.16em] text-black/55 transition hover:text-black"
-            >
-              
-            </a>
-
-            <a
-              href="#products"
-              className="text-[19px] font-medium tracking-[0.16em] text-slate /70 transition hover:text-black"
-            >
-              PRODUCTS
-            </a>
-
-          </nav>
-
-          {/* CART */}
-
-          <button
-            onClick={() =>
-              setCartOpen(true)
-            }
-            className="flex items-center gap-4 border border-black bg-black px-5 py-3 text-[10px] font-bold tracking-[0.18em] text-white transition hover:bg-[#222]"
-          >
-            CART
-
-            <span className="flex h-5 min-w-5 items-center justify-center border border-white/30 px-1 text-[9px]">
-              {cartCount}
-            </span>
-
-          </button>
-
-        </div>
-
-      </header>
 
       {/* ==================================================
           HERO
@@ -687,7 +670,7 @@ function App() {
 
             {cart.length === 0 ? (
 
-              <div className="bg-gradient-to-br from-[#6B21A8] via-[#2E1065] to-[#000000] flex flex-1 items-center justify-center">
+              <div className="bg-gradient-to-br from-[#2E1065] via-[#2E1065] to-[#000000] flex flex-1 items-center justify-center">
 
                 <div className="text-center">
 
@@ -877,7 +860,7 @@ function App() {
 
       {checkoutError && (
 
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/45 px-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#2E1065] via-[#000000] to-[#2E1065] text-white">
 
           <div className="w-full max-w-[460px] border border-black/10 bg-[#f5f5f2] p-10">
 

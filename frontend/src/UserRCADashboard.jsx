@@ -96,6 +96,8 @@ useEffect(() => {
   useEffect(() => {
     let cancelled = false;
     let retryTimer;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 8;
 
     async function loadRCA() {
       try {
@@ -129,6 +131,16 @@ useEffect(() => {
         // Keep real incident data, even if classification is UNKNOWN.
         if (!isUnknown || hasTraces) {
           setData(result);
+          return;
+        }
+
+        attempts += 1;
+
+        if (attempts >= MAX_ATTEMPTS) {
+          setError(
+            "No failure trace was found for this product. " +
+            "Check that Jaeger is running, then place a failing order and try again."
+          );
           return;
         }
 
@@ -435,7 +447,7 @@ setAiExplanation(cleanAnswer);
   if (!data) {
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#6B21A8] via-[#000000] to-[#2E1065] text-white flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-[#2E1065] via-[#000000] to-[#2E1065] text-white">
 
         <div className="text-center">
 
@@ -476,32 +488,49 @@ setAiExplanation(cleanAnswer);
           NAVBAR
       ====================================================== */}
 
-      <nav className="font-mono h-[82px] border-b border-white/10 px-14 flex items-center justify-between">
+<nav className="min-h-[82px] border-b border-white/10 px-6 md:px-14 py-4 flex flex-wrap items-center justify-between gap-4
+">
+  {/* LEFT: LOGO */}
+  <div className="shrink-0">
+    <h1 className="text-2xl font-bold tracking-[0.22em] text-white">
+      SYSSLEUTH
+    </h1>
 
-        <div>
+    <p className="mt-1 text-[9px] tracking-[0.28em] text-[#71899A]">
+      USER RCA
+    </p>
+  </div>
 
-          <h1 className="text-2xl font-white/30 tracking-[0.22em]">
-           
-          
+  {/* RIGHT: NAVIGATION BUTTONS */}
+  <div className="ml-auto flex items-center gap-[18px]">
 
-          <p className="font-mono text-2xl text-[15px] tracking-[0.28em] text-[#71899A] mt-1">
-           USER INCIDENT EXPLANATION
-          </p>
-          </h1> 
+    <button
+      type="button"
+      onClick={() => window.location.assign("/login")}
+      className="items-center justify-center border border-[#344451] bg-transparent px-5 py-3 text-[10px] tracking-[0.16em]  text-white transition hover:border-white hover:bg-white hover:text-black"
+    >
+      ADMIN LOGIN
+    </button>
 
-        </div>
+    <button
+      type="button"
+      onClick={() => window.location.assign("/user")}
+      className="items-center justify-center border border-[#344451] bg-transparent px-5 py-3 text-[10px] tracking-[0.16em]  text-white transition hover:border-white hover:bg-white hover:text-black"
+    >
+      BACK TO STORE
+    </button>
+     <button
+      type="button"
+      onClick={() => window.location.assign("/my-tokens")}
+      className="items-center justify-center border border-[#344451] bg-transparent px-5 py-3 text-[10px] tracking-[0.16em]  text-white transition hover:border-white hover:bg-white hover:text-black"
+    >
+MY TOKENS    
+</button>
+
+  </div>
+</nav>
 
 
-        <button
-          onClick={() => {
-            window.location.href = "/admin";
-          }}
-          className="text-white/30 border border-[#6E8799]/50 px-7 py-4 text-[10px] tracking-[0.16em] font-bold hover:bg-white hover:text-[#071A2F] transition"
-        >
-          LOGIN VIA ADMIN 
-        </button>
-
-      </nav>
 
 
 

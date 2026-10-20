@@ -1,4 +1,3 @@
-
 services:
 
   postgres:
@@ -9,6 +8,37 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: syssleuth_inventory
+    volumes:
+      # FIX: data volume belongs on postgres (it was attached to otel-collector)
+      - postgres_data:/var/lib/postgresql/data
+      # Seeds the DB automatically the first time the volume is empty
+      - ./syssleuth_inventory.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d syssleuth_inventory"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # FIX (root cause): every service exports spans to "jaeger:4317", the
+  # classifier reads traces from "http://jaeger:16686", and ai_service uses
+  # host.docker.internal:16686 -- but no jaeger service existed in this file.
+  # Traces are stored on disk so they survive restarts and logouts.
+  jaeger:
+    image: jaegertracing/all-in-one:1.57.0
+    container_name: jaeger
+    restart: unless-stopped
+    user: root
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: badger
+      BADGER_EPHEMERAL: "false"
+      BADGER_DIRECTORY_VALUE: /badger/data
+      BADGER_DIRECTORY_KEY: /badger/key
+      BADGER_SPAN_STORE_TTL: 720h
+    volumes:
+      - jaeger_data:/badger
+    ports:
+      - "16686:16686"
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
@@ -17,11 +47,12 @@ services:
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
-      - postgres_data:/var/lib/postgresql/data
     ports:
       - "14317:4317"
       - "4318:4318"
       - "8888:8888"
+    depends_on:
+      - jaeger
 
   order-service:
     build: ./order-service
@@ -30,7 +61,10 @@ services:
     ports:
       - "8001:8001"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
 
   inventory-service:
     build: ./inventory-service
@@ -39,7 +73,10 @@ services:
     ports:
       - "8002:8002"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
 
   payment-service:
     build: ./payment-service
@@ -48,7 +85,10 @@ services:
     ports:
       - "8003:8003"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
 
   product-service:
     build: ./product-service
@@ -57,7 +97,10 @@ services:
     ports:
       - "8004:8004"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -71,8 +114,12 @@ services:
     restart: unless-stopped
     ports:
       - "8010:8010"
+    environment:
+      JAEGER_URL: http://jaeger:16686
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - jaeger
 
   ai_service:
     build: ./ai_service
@@ -82,6 +129,9 @@ services:
       - "8005:8005"
     environment:
       OLLAMA_HOST: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   postgres_data:
+  jaeger_data:

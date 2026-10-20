@@ -108,14 +108,14 @@ export default function MyTokens() {
       : "border-amber-400/30 text-amber-200 bg-amber-400/10";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#6B21A8] via-black to-[#2E1065] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#2E1065] via-black to-[#2E1065] text-white">
       <nav className="min-h-[82px] border-b border-white/10 px-6 md:px-14 py-4 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-[0.22em]">
             SYSSLEUTH
           </h1>
           <p className="text-[9px] tracking-[0.28em] text-[#71899A] mt-1">
-            MY COMPLAINTS
+            MY TOKENS
           </p>
         </div>
  {/* Large purple glow */}
@@ -154,7 +154,7 @@ export default function MyTokens() {
           <button
             type="button"
             onClick={() => window.location.assign("/login")}
-            className="border border-purple-500/40 px-6 py-3 text-xs font-bold uppercase tracking-widest text-white transition hover:bg-purple-600"
+            className="border border-[#6E8799]/50 px-5 py-3 text-[10px] tracking-[0.16em] font-bold hover:bg-white hover:text-[#071A2F] transition"
           >
             ADMIN LOGIN
           </button>
@@ -255,7 +255,7 @@ export default function MyTokens() {
                       <button
                         type="button"
                         onClick={() => deleteToken(token)}
-                        className="border border-red-400/40 px-4 py-2 text-xs font-bold text-red-300 hover:bg-red-400/10 transition"
+                        className="border border-violet-400/40 px-4 py-2 text-xs font-bold text-violet-200 hover:bg-violet-400/10 transition"
                       >
                         DELETE TOKEN
                       </button>

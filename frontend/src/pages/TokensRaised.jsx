@@ -34,11 +34,11 @@ export default function TokensRaised() {
 
         <button
           onClick={() => {
-            window.location.href = "/admin";
+            window.location.href = "/user";
           }}
           className="border border-[#6E8799]/50 px-7 py-4 text-[10px] tracking-[0.16em] font-bold hover:bg-white hover:text-[#071A2F] transition"
         >
-          BACK TO RCA
+          USER LOGIN
         </button>
 
       </nav>

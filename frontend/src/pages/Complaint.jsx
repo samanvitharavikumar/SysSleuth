@@ -76,6 +76,7 @@ localStorage.setItem(
           <p className="text-[9px] tracking-[0.28em] text-[#71899A] mt-1">
 COMPLAINT          </p>
         </div>
+  <div className="ml-auto flex items-center gap-6">
 
         <button
           onClick={() => {
@@ -85,7 +86,15 @@ COMPLAINT          </p>
         >
           TOKENS
         </button>
-
+        <button
+            onClick={() => {
+              window.location.href = "/user";
+            }}
+            className="border border-[#6E8799]/50 px-5 py-3 text-[10px] tracking-[0.16em] font-bold hover:bg-white hover:text-[#071A2F] transition"
+          >
+            BACK TO STORE
+          </button> 
+</div>
       </nav>
 
 

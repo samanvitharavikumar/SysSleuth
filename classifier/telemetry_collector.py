@@ -1,7 +1,8 @@
 import json
+import os
 import requests
 
-JAEGER_URL = "http://jaeger:16686"
+JAEGER_URL = os.getenv("JAEGER_URL", "http://jaeger:16686")
 # ============================================================
 # JAEGER
 # ============================================================

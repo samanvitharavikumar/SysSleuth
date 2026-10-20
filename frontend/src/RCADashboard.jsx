@@ -727,22 +727,16 @@ product_id:
 <nav className=" min-h-[60px] border-b border-white/10 px-6 md:px-12 py-2 flex flex-col md:flex-row items-center justify-between gap-3">
 
 
+       
+
         <div>
-
-
-
-          <h1 className="text-white/40 text-xl md:text-2xl font-black tracking-[0.16em] md:tracking-[0.22em]">
-
-            FAILURE INVESTIGATION
-
+          <h1 className="text-2xl font-black tracking-[0.22em]">
+            SYSSLEUTH
           </h1>
-
-
-
-
+          <p className="text-[9px] tracking-[0.28em] text-[#71899A] mt-1">
+            ADMIN RCA 
+          </p>
         </div>
-
-
 
 
 
