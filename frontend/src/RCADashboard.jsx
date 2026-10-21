@@ -1484,11 +1484,9 @@ product_id:
     const selectedProductId = incident.product_id;
 
     const updatedTokens = tokens.map((token) => {
-      const matches = traceId
-        ? token.trace_id === traceId
-        : String(token.product_id) ===
-          String(selectedProductId);
-
+      const matches =
+      (traceId && token.trace_id === traceId) ||
+      String(token.product_id) === String(selectedProductId); 
       if (!matches) return token;
 
       return {

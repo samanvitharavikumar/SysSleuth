@@ -68,9 +68,8 @@ try {
     const matches = tokenId
       ? String(token.token_id || token.tokenId || token.id || token._id) ===
         String(tokenId)
-      : traceId
-        ? String(token.trace_id || "") === String(traceId)
-        : false;
+      : String(token.trace_id || "") === String(traceId || "") ||
+        String(token.product_id) === String(incident.product_id);
 
     if (!matches) return token;
 

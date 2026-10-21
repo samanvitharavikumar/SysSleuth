@@ -186,6 +186,7 @@ function App() {
 
       // Intentionally do NOT expose backend
       // failure details here.
+            setCartOpen(false);
       setCheckoutError(true);
 
     } finally {
@@ -860,8 +861,7 @@ function App() {
 
       {checkoutError && (
 
-    <div className="min-h-screen bg-gradient-to-br from-[#2E1065] via-[#000000] to-[#2E1065] text-white">
-
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-6">
           <div className="w-full max-w-[460px] border border-black/10 bg-[#f5f5f2] p-10">
 
             <div className="mb-10 flex items-center justify-between">

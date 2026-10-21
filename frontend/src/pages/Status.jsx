@@ -1,3 +1,4 @@
+
 import React from "react";
 
 function Detail({ label, value }) {
@@ -15,6 +16,7 @@ function Detail({ label, value }) {
       <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-400">
         {label}
       </p>
+
       <p className="break-words whitespace-pre-wrap text-sm text-white">
         {displayValue}
       </p>
@@ -31,9 +33,11 @@ export default function Status() {
   let tokens = [];
 
   try {
-    tokens = JSON.parse(
+    const storedTokens = JSON.parse(
       localStorage.getItem("raised_tokens") || "[]"
     );
+
+    tokens = Array.isArray(storedTokens) ? storedTokens : [];
   } catch {
     tokens = [];
   }
@@ -44,25 +48,67 @@ export default function Status() {
       (userId && token.user_id === userId) ||
       (!token.username &&
         !token.user_id &&
-        username === "user")
+        username.toLowerCase() === "user")
     );
   });
 
   return (
-    <div className="min-h-screen bg-[#08080d] px-6 py-10 text-white">
-      <div className="mx-auto max-w-5xl">
-        <button
-          onClick={() => {
-            window.location.href = "/my-tokens";
-          }}
-          className="mb-8 text-sm text-purple-300 hover:text-white"
-        >
-          ← Back to My Tokens
-        </button>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#2E1065] via-black to-[#2E1065] text-white">
+      {/* Large purple glow */}
+      <div
+        className="pointer-events-none absolute -left-40 -top-40 h-[500px] w-[500px] bg-purple-700/15 blur-[140px]"
+        aria-hidden="true"
+      />
 
-        <h1 className="text-3xl font-bold text-purple-300">
-          Token Status
-        </h1>
+      {/* Bottom purple glow */}
+      <div
+        className="pointer-events-none absolute -bottom-40 -right-40 h-[500px] w-[500px] bg-violet-600/10 blur-[140px]"
+        aria-hidden="true"
+      />
+
+      {/* Navigation */}
+      <nav className="relative z-10 flex min-h-[82px] flex-wrap items-center justify-between gap-4 border-b border-white/10 px-6 py-4 md:px-14">
+        <div>
+          <h1 className="text-2xl font-black tracking-[0.22em]">
+            SYSSLEUTH
+          </h1>
+
+          <p className="mt-1 text-[9px] tracking-[0.28em] text-[#71899A]">
+            MY TOKENS
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => window.location.assign("/login")}
+            className="border border-[#6E8799]/50 px-5 py-3 text-[10px] font-bold tracking-[0.16em] transition hover:bg-white hover:text-[#071A2F]"
+          >
+            ADMIN LOGIN
+          </button>
+           <button
+            type="button"
+            onClick={() => window.location.assign("/my-tokens")}
+            className="border border-[#6E8799]/50 px-5 py-3 text-[10px] font-bold tracking-[0.16em] transition hover:bg-white hover:text-[#071A2F]"
+          >
+            MY TOKENS
+          </button>
+
+          <button
+            type="button"
+            onClick={() => window.location.assign("/user")}
+            className="border border-[#6E8799]/50 px-5 py-3 text-[10px] font-bold tracking-[0.16em] transition hover:bg-white hover:text-[#071A2F]"
+          >
+            BACK TO STORE
+          </button>
+        </div>
+      </nav>
+
+      {/* Main content */}
+      <main className="relative z-10 mx-auto max-w-6xl px-6 py-10 md:px-10">
+        <h2 className="text-3xl font-bold tracking-wide">
+           Tokens Status
+        </h2>
 
         <p className="mb-8 mt-2 text-gray-400">
           Track your tokens, order information, incident analysis,
@@ -78,7 +124,7 @@ export default function Status() {
         ) : (
           <div className="space-y-6">
             {myTokens.map((token, index) => {
-              const status = (
+              const status = String(
                 token.status || "SUBMITTED"
               ).toUpperCase();
 
@@ -86,14 +132,9 @@ export default function Status() {
                 status === "RESOLVED" ||
                 status === "SOLVED";
 
-              const order =
-                token.order_details || {};
-
-              const incident =
-                token.incident_details || {};
-
-              const proposedFix =
-                token.proposed_fix || {};
+              const order = token.order_details || {};
+              const incident = token.incident_details || {};
+              const proposedFix = token.proposed_fix || {};
 
               const orderId =
                 order.order_id ??
@@ -111,10 +152,17 @@ export default function Status() {
                   ? "Order Placed Successfully"
                   : order.status);
 
+              const tokenId =
+                token.token_id ||
+                token.tokenId ||
+                token.id ||
+                token._id ||
+                `TOKEN-${index + 1}`;
+
               return (
                 <div
-                  key={token.token_id || token.id || index}
-                  className="rounded-xl border border-purple-500/20 bg-[#111019] p-6"
+                  key={tokenId}
+                  className="border border-purple-500/20  p-6"
                 >
                   {/* Token header */}
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -124,18 +172,14 @@ export default function Status() {
                       </p>
 
                       <p className="mt-1 break-all font-semibold">
-                        {token.token_id ||
-                          token.tokenId ||
-                          token.id ||
-                          token._id ||
-                          `TOKEN-${index + 1}`}
+                        {tokenId}
                       </p>
                     </div>
 
                     <span
-                      className={`inline-block w-fit rounded-full border px-4 py-2 text-xs font-bold ${
+                      className={`inline-block w-fit border px-4 py-2 text-xs font-bold ${
                         resolved
-                          ? "border-green-500/30 bg-green-500/10 text-green-400"
+                          ? "border-violet-500/30 bg-violet-500/10 text-violet-400"
                           : "border-yellow-500/30 bg-yellow-500/10 text-yellow-400"
                       }`}
                     >
@@ -161,23 +205,25 @@ export default function Status() {
                     )}
 
                     {resolved && (
-                      <p className="mt-4 text-sm text-green-400">
-                        ✓ Your token has been resolved.
+                      <p className="mt-4 text-sm text-whiite-400">
+                       Your token has been resolved.
                       </p>
                     )}
                   </div>
 
-                  {/* Order details from /fixed */}
+                  {/* Order details */}
                   {token.order_details && (
                     <section className="mt-6 border-t border-white/10 pt-6">
-                      <h2 className="mb-4 text-lg font-bold text-purple-300">
+                      <h3 className="mb-4 text-lg font-bold text-purple-300">
                         Order Details
-                      </h2>
+                      </h3>
 
-                      {order.customer_name ||
-                      order.customer ||
-                      order.username ||
-                      token.username ? (
+                      {(
+                        order.customer_name ||
+                        order.customer ||
+                        order.username ||
+                        token.username
+                      ) && (
                         <div className="mb-4 grid gap-4 sm:grid-cols-2">
                           <Detail
                             label="Customer"
@@ -189,7 +235,7 @@ export default function Status() {
                             }
                           />
                         </div>
-                      ) : null}
+                      )}
 
                       <div className="grid gap-4 sm:grid-cols-2">
                         <Detail
@@ -239,12 +285,12 @@ export default function Status() {
                     </section>
                   )}
 
-                  {/* Incident analysis from /fixed */}
+                  {/* Incident analysis */}
                   {token.incident_details && (
                     <section className="mt-6 border-t border-white/10 pt-6">
-                      <h2 className="mb-4 text-lg font-bold text-purple-300">
+                      <h3 className="mb-4 text-lg font-bold text-purple-300">
                         Incident Analysis
-                      </h2>
+                      </h3>
 
                       <div className="grid gap-4 sm:grid-cols-2">
                         <Detail
@@ -297,12 +343,12 @@ export default function Status() {
                     </section>
                   )}
 
-                  {/* Proposed fix from /fixed */}
+                  {/* Proposed fix */}
                   {token.proposed_fix && (
                     <section className="mt-6 border-t border-purple-400/20 pt-6">
-                      <h2 className="mb-4 text-lg font-bold text-purple-300">
+                      <h3 className="mb-4 text-lg font-bold text-purple-300">
                         Resolution Details
-                      </h2>
+                      </h3>
 
                       <div className="space-y-4">
                         <Detail
@@ -337,7 +383,7 @@ export default function Status() {
             })}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

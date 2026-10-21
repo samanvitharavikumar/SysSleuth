@@ -102,10 +102,13 @@ export default function MyTokens() {
     }
   };
 
+    const isSolved = (status) =>
+    ["SOLVED", "RESOLVED"].includes(String(status).toUpperCase());
+
   const statusClass = (status) =>
-    String(status).toUpperCase() === "SOLVED"
+    isSolved(status)
       ? "border-green-400/30 text-green-300 bg-green-400/10"
-      : "border-amber-400/30 text-amber-200 bg-amber-400/10";
+      : "border-violet-400/30 text-violet-200 bg-violet-400/10";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2E1065] via-black to-[#2E1065] text-white">
@@ -262,8 +265,8 @@ export default function MyTokens() {
                     </div>
                   </div>
 
-                  {String(status).toUpperCase() === "SOLVED" && (
-                    <div className="mt-6 border border-green-400/30 bg-green-400/10 p-4 text-green-200">
+ {isSolved(status) && (
+                      <div className="mt-6 border border-green-400/30 bg-green-400/10 p-4 text-green-200">
                       <p className="font-bold">Your issue has been solved.</p>
                       <p className="mt-2">
                         {token.resolution_message ||
