@@ -1461,7 +1461,6 @@ product_id:
         span_id: data.span_id || trace?.span_id || null,
         operation: data.operation || trace?.operation || null,
         status_code: data.status_code ?? trace?.status_code ?? null,
-        product_id: trace.product_id,
         product_id: productId || trace?.product_id || null,
         quantity: data.quantity ?? trace?.quantity ?? null,
       },
@@ -1475,42 +1474,56 @@ product_id:
       },
     };
 
-       const tokens = JSON.parse(
-      localStorage.getItem("raised_tokens") || "[]"
-    );
+    try {
+      const tokens = JSON.parse(
+        localStorage.getItem("raised_tokens") || "[]"
+      );
 
-    const incident = fixedOrderData.incident;
-    const traceId = incident.trace_id;
-    const selectedProductId = incident.product_id;
+      const incident = fixedOrderData.incident;
+      const isReal = (v) =>
+        v != null &&
+        v !== "" &&
+        !String(v).toUpperCase().includes("NOT FOUND");
 
-    const updatedTokens = tokens.map((token) => {
-      const matches =
-      (traceId && token.trace_id === traceId) ||
-      String(token.product_id) === String(selectedProductId); 
-      if (!matches) return token;
+      const traceId = isReal(incident.trace_id)
+        ? String(incident.trace_id)
+        : null;
+      const selectedProductId = isReal(incident.product_id)
+        ? String(incident.product_id)
+        : null;
 
-      return {
-        ...token,
-        status: "RESOLVED",
+      const updatedTokens = tokens.map((token) => {
+        const matches =
+          (traceId && String(token.trace_id) === traceId) ||
+          (selectedProductId &&
+            String(token.product_id) === selectedProductId);
 
-        order_details: {
-          order_id: selectedProductId,
-          quantity: incident.quantity ?? 1,
-          display_status: "Order Placed Successfully",
-        },
+        if (!matches) return token;
 
-        incident_details: incident,
-        proposed_fix: fixedOrderData.proposed_fix,
+        return {
+          ...token,
+          status: "RESOLVED",
+          resolved_at: new Date().toISOString(),
+          order_details: {
+            order_id: selectedProductId,
+            quantity: incident.quantity ?? 1,
+            display_status: "Order Placed Successfully",
+          },
+          incident_details: incident,
+          proposed_fix: fixedOrderData.proposed_fix,
 
-        // This is a demo status, not backend order confirmation.
-        order_confirmation: false,
-      };
-    });
+          // This is a demo status, not backend order confirmation.
+          order_confirmation: false,
+        };
+      });
 
-    localStorage.setItem(
-      "raised_tokens",
-      JSON.stringify(updatedTokens)
-    );
+      localStorage.setItem(
+        "raised_tokens",
+        JSON.stringify(updatedTokens)
+      );
+    } catch (error) {
+      console.error("Could not mark tokens as resolved:", error);
+    }
 
     sessionStorage.setItem(
       "fixed_order_data",

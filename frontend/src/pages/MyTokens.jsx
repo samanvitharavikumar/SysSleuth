@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 
 export default function MyTokens() {
@@ -37,9 +36,13 @@ export default function MyTokens() {
     };
 
     window.addEventListener("storage", handleStorage);
+    window.addEventListener("focus", loadTokens);
+    window.addEventListener("pageshow", loadTokens);
 
     return () => {
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("focus", loadTokens);
+      window.removeEventListener("pageshow", loadTokens);
     };
   }, []);
 
